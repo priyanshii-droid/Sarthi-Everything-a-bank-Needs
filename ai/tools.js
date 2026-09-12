@@ -12,7 +12,7 @@ function toolDefinitions() {
 }
 
 function buildExecutors(toolkit) {
-  const { state, analyze, auditTransactions, money, investigateFinances } = toolkit;
+  const { state, analyze, auditTransactions, money, investigateFinances, simulateScenarios } = toolkit;
   const current = () => analyze(state.transactions, state.problem);
 
   return {
@@ -49,11 +49,8 @@ function buildExecutors(toolkit) {
       return {price,detectedSurplus:surplus,remainingIfPaidFromOnePeriodSurplus:remaining,signal,warning:'Planning signal only. This does not account for emergency reserves, future income changes, or all future obligations.'};
     },
     run_what_if: ({type,percent,category}) => {
-      const a=current(); const p=Number(percent)/100;
-      if(type==='income_change') { const delta=a.totalIncome*p; return {type,percent,newIncome:a.totalIncome+delta,change:delta,newSurplus:a.netSavings+delta}; }
-      if(type==='expense_change') { const delta=a.totalExpenses*p; return {type,percent,newExpenses:a.totalExpenses+delta,change:delta,newSurplus:a.netSavings-delta}; }
-      const row=a.categories.find(x=>x.category.toLowerCase()===String(category||'').toLowerCase()); const amount=row?.amount||0; const savings=amount*p;
-      return {type,category,percent,categoryAmount:amount,savingsFreed:savings,newSurplus:a.netSavings+savings};
+      if (typeof simulateScenarios !== 'function') return {error:'Digital Twin engine is unavailable.'};
+      return simulateScenarios(state.transactions, analyze, [{type,percent,category}]);
     }
   };
 }

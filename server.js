@@ -10,6 +10,7 @@ const { requestIdMiddleware } = require('./shared/request-id');
 const logger = require('./shared/logger');
 const { money, auditTransactions, analyze, investigateFinances, normalizeRows } = require('./core/financial-engine');
 const { parseWorkbook, parseCsvText, parseJsonText, parsePlainText } = require('./core/parser');
+const { simulateScenarios, parseScenarioText } = require('./core/decision-engine');
 
 const config = getConfig();
 const app = express();
@@ -74,7 +75,7 @@ app.post('/api/chat',async(req,res)=>{
   if(!q)return res.status(400).json({error:'Ask a question.'});
   if(!state.transactions.length) return res.json({reply:'I’m ready. Upload an Excel/CSV file or paste your financial data first. Then tell me what you want to figure out.',needsData:true});
 
-  const toolkit={state,analyze,auditTransactions,money,investigateFinances};
+  const toolkit={state,analyze,auditTransactions,money,investigateFinances,simulateScenarios};
   try{
     const requestedLanguage=String(req.body?.language||'').trim(); const localizedMessage=requestedLanguage?`Respond in ${requestedLanguage==='hi'?'Hindi':requestedLanguage==='gu'?'Gujarati':'English'} unless the user explicitly asks for another language.\n\n${q}`:q; const ai=await runSaarthi({state,message:localizedMessage,toolkit});
     if(ai.configured && ai.reply){
@@ -101,7 +102,25 @@ app.post('/api/chat',async(req,res)=>{
 
 app.get('/api/ai-status',(req,res)=>res.json({configured:Boolean(config.openAIKey),model:config.model}));
 
-app.post('/api/simulate',(req,res)=>{ const state=getState(req); if(!state.transactions.length)return res.status(400).json({error:'Load data first.'}); const category=String(req.body?.category||''); const reduction=Math.max(0,Math.min(100,Number(req.body?.reduction)||0)); const amount=analyze(state.transactions,state.problem).categories.find(c=>c.category===category)?.amount||0; const monthlySave=amount*reduction/100; const before=analyze(state.transactions,state.problem); res.json({category,reduction,categoryAmount:amount,savingsPerPeriod:Math.round(monthlySave),yearlySavings:Math.round(monthlySave*12),newSurplus:Math.round(before.netSavings+monthlySave)}); });
+app.post('/api/simulate',(req,res)=>{
+  const state=getState(req);
+  if(!state.transactions.length)return res.status(400).json({ok:false,error:'Load data first.'});
+  const body=req.body||{};
+  let scenarios=Array.isArray(body.scenarios)?body.scenarios.slice(0,8):[];
+  if(!scenarios.length && body.category) scenarios=[{type:'category_reduction',category:String(body.category),percent:Math.abs(Number(body.reduction)||0)}];
+  if(!scenarios.length && body.scenario) { const parsed=parseScenarioText(body.scenario); if(parsed.error)return res.status(400).json({ok:false,error:parsed.error}); scenarios=[parsed]; }
+  if(!scenarios.length)return res.status(400).json({ok:false,error:'Provide at least one scenario.'});
+  const result=simulateScenarios(state.transactions,analyze,scenarios);
+  const last=result.scenarios.at(-1);
+  res.json({...result,category:last?.category||null,reduction:last?.percent?Math.abs(last.percent):0,categoryAmount:last?.affectedAmount||0,savingsPerPeriod:last?.affectedAmount||0,yearlySavings:Math.round((last?.affectedAmount||0)*12),newSurplus:result.final.surplus});
+});
+app.post('/api/decision',(req,res)=>{
+  const state=getState(req);
+  if(!state.transactions.length)return res.status(400).json({ok:false,error:'Load data first.'});
+  const scenarios=Array.isArray(req.body?.scenarios)?req.body.scenarios:[parseScenarioText(req.body?.scenario||'')];
+  if(scenarios.some(x=>x?.error))return res.status(400).json({ok:false,error:scenarios.find(x=>x?.error).error});
+  res.json(simulateScenarios(state.transactions,analyze,scenarios));
+});
 app.post('/api/reset',(req,res)=>{const state=getState(req);reset(state);res.json({ok:true});});
 app.get('/api/dashboard',(req,res)=>{const state=getState(req);const a=analyze(state.transactions,state.problem);res.json({balance:null,...a,recentTransactions:state.transactions.slice(0,8),hasData:state.transactions.length>0});});
 

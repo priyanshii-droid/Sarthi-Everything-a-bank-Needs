@@ -1,4 +1,6 @@
-function classifyIntent(message='') {
+'use strict';
+
+function classifyIntent(message = '') {
   const s = String(message).toLowerCase();
   if (/why|what.*wrong|too much|spending|save|saving|financ/.test(s)) return 'financial_investigation';
   if (/afford|buy|purchase|laptop|phone|car/.test(s)) return 'affordability';
@@ -9,16 +11,23 @@ function classifyIntent(message='') {
   return 'financial_investigation';
 }
 
-function buildPlan(message='') {
+function buildPlan(message = '') {
   const intent = classifyIntent(message);
   const plans = {
-    financial_investigation: ['get_financial_summary','audit_transactions','compare_months','investigate_finances'],
-    affordability: ['get_financial_summary','audit_transactions'],
+    financial_investigation: ['get_financial_summary', 'audit_transactions', 'compare_months', 'investigate_finances'],
+    affordability: ['get_financial_summary', 'audit_transactions'],
     goal: ['get_financial_summary'],
-    audit: ['audit_transactions','investigate_finances'],
-    comparison: ['get_financial_summary','compare_months'],
-    simulation: ['get_financial_summary','audit_transactions']
+    audit: ['audit_transactions', 'investigate_finances'],
+    comparison: ['get_financial_summary', 'compare_months'],
+    simulation: ['get_financial_summary', 'audit_transactions', 'run_what_if']
   };
-  return {intent, steps: plans[intent] || plans.financial_investigation};
+  const steps = plans[intent] || plans.financial_investigation;
+  return {
+    intent,
+    steps,
+    rationale: `Selected ${steps.length} evidence steps for ${intent}.`,
+    verificationRequired: true
+  };
 }
+
 module.exports = { classifyIntent, buildPlan };

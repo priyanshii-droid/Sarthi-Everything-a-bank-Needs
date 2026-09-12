@@ -98,3 +98,29 @@ Saarthi now separates an investigation into: intent classification → investiga
 The `/api/investigate` endpoint returns the investigation plan, evidence trail, and verification checks. `/api/chat` uses the same orchestration before asking the AI to explain the result.
 
 AI remains the explanation/reasoning layer; deterministic financial calculations remain in the financial engine.
+
+## Phase 3: Decision Engine + Digital Twin
+
+Saarthi now has a deterministic scenario engine for decision support. Scenarios are hypothetical only and never mutate the canonical ledger.
+
+Supported scenario types:
+- `income_change` — percentage increase/decrease in detected income
+- `expense_change` — percentage increase/decrease in detected expenses
+- `category_reduction` — reduce a detected expense category by a percentage
+
+Endpoints:
+- `POST /api/simulate` — Digital Twin simulation; supports stacked scenarios and keeps legacy category simulation compatibility.
+- `POST /api/decision` — natural-language scenario parsing followed by deterministic simulation.
+
+The agent's `run_what_if` tool now delegates to the same Digital Twin engine, so UI, API and agent calculations use one source of truth.
+
+## Phase 4 — Evidence + Verification
+
+The intelligence layer now maintains a stronger evidence trail for every investigation step.
+
+- Evidence records include status, confidence, timestamp, source and a payload fingerprint.
+- Tool failures are treated as failed evidence rather than successful results.
+- Verification checks cash-flow consistency, latest-period savings consistency and audit structure.
+- Investigations expose an evidence-quality score and a `PASS` / `REVIEW_REQUIRED` decision gate.
+- The agent is instructed to disclose verification limitations and never present failed evidence as verified.
+- Deterministic financial calculations remain outside the language model.
