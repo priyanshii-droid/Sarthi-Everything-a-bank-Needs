@@ -46,6 +46,8 @@ class SaarthiDatabase {
       );
       CREATE INDEX IF NOT EXISTS idx_auth_sessions_token ON auth_sessions(token_hash);
       CREATE INDEX IF NOT EXISTS idx_provider_connections_user ON provider_connections(user_id);
+      CREATE TABLE IF NOT EXISTS user_preferences (user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, preferences_json TEXT NOT NULL, updated_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS rewards (user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, points INTEGER NOT NULL DEFAULT 0, shares INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL);
     `);
   }
   userByEmail(email) { return this.db.prepare('SELECT * FROM users WHERE email = ?').get(email); }
@@ -86,6 +88,10 @@ class SaarthiDatabase {
     return this.listConnections(userId).find(x=>x.providerId===providerId && x.externalAccountRef===externalAccountRef);
   }
   disconnectConnection(userId,id) { this.db.prepare('DELETE FROM provider_connections WHERE user_id=? AND id=?').run(userId,id); }
+  getPreferences(userId) { const row=this.db.prepare('SELECT preferences_json FROM user_preferences WHERE user_id=?').get(userId); if(!row) return {}; try{return JSON.parse(row.preferences_json||'{}')}catch{return {}} }
+  savePreferences(userId, preferences) { const now=new Date().toISOString(); this.db.prepare(`INSERT INTO user_preferences(user_id,preferences_json,updated_at) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET preferences_json=excluded.preferences_json,updated_at=excluded.updated_at`).run(userId,JSON.stringify(preferences||{}),now); return this.getPreferences(userId); }
+  getRewards(userId) { const row=this.db.prepare('SELECT points,shares,updated_at AS updatedAt FROM rewards WHERE user_id=?').get(userId); return row||{points:0,shares:0,updatedAt:null}; }
+  awardShare(userId, points=25) { const now=new Date().toISOString(); this.db.prepare(`INSERT INTO rewards(user_id,points,shares,updated_at) VALUES(?,?,1,?) ON CONFLICT(user_id) DO UPDATE SET points=points+excluded.points,shares=shares+1,updated_at=excluded.updated_at`).run(userId,points,now); return this.getRewards(userId); }
   close() { this.db.close(); }
 }
 function randomId(prefix='id') { return `${prefix}_${crypto.randomBytes(16).toString('hex')}`; }

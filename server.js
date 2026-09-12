@@ -164,15 +164,23 @@ app.post('/api/reset',(req,res)=>{const state=getState(req,res);reset(state);sav
 app.get('/api/dashboard',(req,res)=>{const state=getState(req,res);const a=analyze(state.transactions,state.problem);res.json({balance:null,...a,recentTransactions:state.transactions.slice(0,8),hasData:state.transactions.length>0});});
 
 // Phase 5: research + document intelligence
+app.get('/api/research/status',(req,res)=>res.json({ok:true,configured:Boolean(config.openAIKey),model:config.model,capabilities:['web_search','source_citations','primary_source_preference']}));
+
 app.post('/api/research', async (req,res) => {
   const query=String(req.body?.query||'').trim();
   if(!query) return res.status(400).json({ok:false,error:'Tell Saarthi what you want researched.'});
   try {
-    const result=await researchPublicInformation({query,apiKey:config.openAIKey,model:config.model});
+    const result=await researchPublicInformation({query,apiKey:config.openAIKey,model:config.model,language:String(req.body?.language||'en')});
     if(!result.ok) return res.status(503).json(result);
     res.json(result);
   } catch(e){res.status(502).json({ok:false,error:`Web research failed: ${e.message}`});}
 });
+
+
+app.get('/api/preferences',bearerAuth,(req,res)=>res.json({ok:true,preferences:db.getPreferences(req.user.id)}));
+app.post('/api/preferences',bearerAuth,(req,res)=>{ const current=db.getPreferences(req.user.id); const next={...current}; if(['en','hi','gu'].includes(req.body?.language)) next.language=req.body.language; if(typeof req.body?.sound==='boolean') next.sound=req.body.sound; if(typeof req.body?.tts==='boolean') next.tts=req.body.tts; res.json({ok:true,preferences:db.savePreferences(req.user.id,next)}); });
+app.get('/api/rewards',bearerAuth,(req,res)=>res.json({ok:true,rewards:db.getRewards(req.user.id)}));
+app.post('/api/rewards/share',bearerAuth,(req,res)=>{ const rewards=db.awardShare(req.user.id,25); res.json({ok:true,rewards,message:'Share reward granted once per share action.'}); });
 
 app.post('/api/documents/inspect', upload.single('file'), (req,res) => {
   if(!req.file) return res.status(400).json({ok:false,error:'Attach a financial document first.'});

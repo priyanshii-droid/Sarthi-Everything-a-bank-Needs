@@ -154,3 +154,22 @@ The current bank adapter is intentionally a boundary, not a live banking connect
 
 ### Production provider rule
 A real bank adapter must use the institution/provider's official consent/OAuth flow and a secure token vault/KMS. Do not add login/password/OTP/PIN/CVV fields to Saarthi APIs.
+
+## Phase 9.1 — Language, Rewards, Settings & Research UX
+
+- UI language switching: English, Hindi, Gujarati.
+- Preferences persisted per authenticated user.
+- Interface sound and spoken-response preferences.
+- Share-and-earn rewards ledger (+25 points per share action).
+- Research status endpoint and cited source cards.
+- Live research uses the OpenAI Responses API web search tool when `OPENAI_API_KEY` is configured.
+- `.env` is loaded automatically from the project root; restart `npm start` after changing it.
+
+### Enable live research
+
+1. Copy `.env.example` to `.env`.
+2. Set `OPENAI_API_KEY=...` in `.env`.
+3. Restart the backend with `npm start`.
+4. Open Research in Saarthi and use a research prompt.
+
+Never place API keys in the browser, HTML, or client-side JavaScript.
