@@ -164,13 +164,25 @@ app.post('/api/reset',(req,res)=>{const state=getState(req,res);reset(state);sav
 app.get('/api/dashboard',(req,res)=>{const state=getState(req,res);const a=analyze(state.transactions,state.problem);res.json({balance:null,...a,recentTransactions:state.transactions.slice(0,8),hasData:state.transactions.length>0});});
 
 // Phase 5: research + document intelligence
-app.get('/api/research/status',(req,res)=>res.json({ok:true,configured:Boolean(config.openAIKey),model:config.model,capabilities:['web_search','source_citations','primary_source_preference']}));
+app.get('/api/research/status',(req,res)=>res.json({
+  ok:true,
+  configured:Boolean(config.openAIKey),
+  model:config.model,
+  keyPresent:Boolean(config.openAIKey),
+  capabilities:['web_search','source_citations','primary_source_preference'],
+  restartRequired:true
+}));
 
 app.post('/api/research', async (req,res) => {
   const query=String(req.body?.query||'').trim();
   if(!query) return res.status(400).json({ok:false,error:'Tell Saarthi what you want researched.'});
   try {
-    const result=await researchPublicInformation({query,apiKey:config.openAIKey,model:config.model,language:String(req.body?.language||'en')});
+    const result=await researchPublicInformation({
+      query,
+      apiKey:config.openAIKey,
+      model:config.model,
+      language:String(req.body?.language||'en')
+    });
     if(!result.ok) return res.status(503).json(result);
     res.json(result);
   } catch(e){res.status(502).json({ok:false,error:`Web research failed: ${e.message}`});}

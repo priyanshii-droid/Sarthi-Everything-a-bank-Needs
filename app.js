@@ -21,7 +21,39 @@ function trace(inv){if(!inv)return '';const labels={investigate_finances:'Map fi
 async function ask(q){if(!q)return;show('home');$('hero-question').value=q;$('hero-ask').disabled=true;agentBusy(true,'Investigating your request');try{const r=await api('/api/chat',{method:'POST',body:JSON.stringify({message:q,language:LANG})});const inv=r.investigation,status=inv?.status==='verified'?'VERIFIED':'REVIEW REQUIRED';const box=document.createElement('div');box.className='signal';box.innerHTML=`<b>Saarthi · ${status}</b><p>${esc(r.reply||'No response').replace(/\n/g,'<br>')}</p>${trace(inv)}${inv?`<p>${inv.evidenceQuality?.score??0}/100 evidence quality · ${inv.evidence?.length??0} evidence items</p>`:''}`;$('signals').prepend(box);if('speechSynthesis'in window&&localStorage.getItem('saarthi_tts')==='1')speak(r.reply);ping('success');agentBusy(false,'Ready')}catch(e){ping('error');agentBusy(false,'Could not complete');$('agent-status').classList.add('error');$('signals').innerHTML=`<div class="signal"><b>Could not answer</b><p>${esc(e.message)}</p></div>`}finally{$('hero-ask').disabled=false}}
 async function investigate(){if(!state.hasData){show('data');return}$('investigation').innerHTML='<div class="panel" style="padding:20px"><div class="agent-trace"><div>Planning investigation…</div><div>Running evidence checks…</div><div>Verifying results…</div></div></div>';try{const r=await api('/api/investigate',{method:'POST',body:JSON.stringify({problem:'Investigate my finances and identify the strongest evidence-backed issues, changes, anomalies and review points.'})});const fs=r.findings||r.investigation?.findings||[];$('investigation').innerHTML=fs.length?fs.map((f,i)=>`<article class="finding"><span class="num">${i+1}</span><div><b>${esc(f.title||'Finding')}</b><p>${esc(f.evidence||f.text||'')}</p></div><span class="confidence">${esc(f.confidence??'—')}%</span></article>`).join(''):'<div class="panel" style="padding:20px"><b>Investigation complete.</b><p>No findings were returned. Review the verification package.</p></div>';$('investigation-meta').textContent=`Status: ${r.status||r.investigation?.status||'—'} · Evidence quality: ${r.evidenceQuality?.score??r.investigation?.evidenceQuality?.score??'—'}/100 · Gate: ${r.verification?.decisionGate||r.investigation?.verification?.decisionGate||'—'}`;ping('success')}catch(e){ping('error');$('investigation').innerHTML=`<div class="panel" style="padding:20px"><b>Investigation unavailable</b><p>${esc(e.message)}</p></div>`}}
 async function decision(){const q=$('scenario').value.trim();if(!q)return;$('decision-result').innerHTML='<div class="result-box">Running Digital Twin…</div>';try{const r=await api('/api/decision',{method:'POST',body:JSON.stringify({scenario:q})});$('decision-result').innerHTML=`<div class="result-box"><b>Simulation result</b><p>Surplus: <strong>${money(r.baseline.surplus)}</strong> → <strong>${money(r.final.surplus)}</strong> (${r.delta.surplus>=0?'+':''}${money(r.delta.surplus)}).</p><p>Savings rate: ${r.baseline.savingsRate}% → ${r.final.savingsRate}%.</p><small>Simulation only. Your real ledger was not changed.</small></div>`;ping('success')}catch(e){ping('error');$('decision-result').innerHTML=`<div class="result-box"><b>Scenario unavailable</b><p>${esc(e.message)}</p></div>`}}
-async function research(){const q=$('research-query').value.trim();if(!q)return;$('research-result').innerHTML='<div class="result-box">Researching current sources…</div>';try{const r=await api('/api/research',{method:'POST',body:JSON.stringify({query:q})});$('research-result').innerHTML=`<div class="result-box"><b>Research result</b><p>${esc(r.answer||'').replace(/\n/g,'<br>')}</p><small>${r.generatedAt?'Retrieved '+esc(r.generatedAt):'Public-source research'} · Verify important rates, fees and deadlines against the cited source.</small></div>`;ping('success')}catch(e){ping('error');$('research-result').innerHTML=`<div class="result-box"><b>Research unavailable</b><p>${esc(e.message)}</p></div>`}}
+async function research(){
+  const q=$('research-query').value.trim();
+  if(!q)return;
+  const status=$('research-status');
+  const result=$('research-result');
+  result.innerHTML='<div class="result-box"><b>Researching current sources…</b><p>Searching public web evidence and preparing citations.</p></div>';
+  status.className='research-status';
+  status.textContent='Live research in progress…';
+  try{
+    const r=await api('/api/research',{method:'POST',body:JSON.stringify({query:q,language:LANG})});
+    const sources=(r.sources||[]).filter(x=>x.url);
+    const sourceHtml=sources.length
+      ? `<div class="research-sources"><div class="eyebrow">SOURCES · ${sources.length}</div>${sources.slice(0,8).map(x=>`<div class="research-source"><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.title||x.url)}</a><small>${esc(x.type||'public')}</small></div>`).join('')}</div>`
+      : '<p class="research-warning">The answer returned without extractable source records. Check the cited URLs in the answer before relying on time-sensitive claims.</p>';
+    result.innerHTML=`<div class="result-box"><b>Research result</b><p>${esc(r.answer||'No research answer was returned.').replace(/\n/g,'<br>')}</p><small>${r.retrievedAt?'Retrieved '+esc(r.retrievedAt):'Public-source research'} · ${r.sourceCount||sources.length} source records</small>${sourceHtml}</div>`;
+    status.className='research-status ready';
+    status.textContent=`Live web research completed · ${r.sourceCount||sources.length} sources`;
+    ping('success');
+  }catch(e){
+    ping('error');
+    try{
+      const s=await api('/api/research/status');
+      if(!s.configured){
+        status.className='research-status warn';
+        status.textContent='Research is not configured on this backend.';
+      } else {
+        status.className='research-status warn';
+        status.textContent=`Research backend is configured · ${s.model}`;
+      }
+    }catch{}
+    result.innerHTML=`<div class="result-box"><b>Research unavailable</b><p>${esc(e.message)}</p><p><small>Check the backend terminal for the request error. Do not put the API key in browser code.</small></p></div>`;
+  }
+}
 async function importLedger(){const f=$('ledger-file').files[0],paste=$('paste').value.trim(),problem=$('problem').value.trim();$('import-status').textContent='Loading…';try{let body,opt;if(f){body=new FormData();body.append('file',f);body.append('problem',problem);opt={method:'POST',body}}else{opt={method:'POST',body:JSON.stringify({data:paste,problem})}}const r=await api('/api/import',opt);state.hasData=true;render(r.analytics);await loadTx();$('import-status').textContent=`Loaded ${r.analytics.transactionCount} usable transactions.`;ping('success');show('home')}catch(e){ping('error');$('import-status').textContent=e.message}}
 async function inspect(){const f=$('doc-file').files[0];if(!f){$('doc-result').textContent='Choose a document first.';return}$('doc-result').innerHTML='<div class="result-box">Inspecting document…</div>';try{const fd=new FormData();fd.append('file',f);const r=await api('/api/documents/inspect',{method:'POST',body:fd});$('doc-result').innerHTML=`<div class="result-box"><b>${esc(r.document)}</b><p>${esc(r.kind)} · ${r.count} normalized rows</p><p>Facts extracted: ${Object.keys(r.facts||{}).length}. Provenance is retained for review.</p></div>`;ping('success')}catch(e){ping('error');$('doc-result').innerHTML=`<div class="result-box"><b>Could not inspect</b><p>${esc(e.message)}</p></div>`}}
 function speak(text){if(!('speechSynthesis'in window)||!text)return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=.98;u.pitch=1;window.speechSynthesis.speak(u)}
@@ -57,14 +89,13 @@ const I18N={
 };
 function t(text){const raw=String(text??'');return I18N[LANG]?.[raw]||raw}
 function translatePage(){
-  try { document.documentElement.lang=LANG==='hi'?'hi':LANG==='gu'?'gu':'en';
+  document.documentElement.lang=LANG==='hi'?'hi':LANG==='gu'?'gu':'en';
   const root=document.body;
   const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
   const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
-  nodes.forEach(n=>{if(!n.parentElement || ['SCRIPT','STYLE'].includes(n.parentElement.tagName))return; const base=n.__i18nOriginal??n.nodeValue.trim(); if(!base)return; n.__i18nOriginal=base; const lead=n.nodeValue.match(/^\s*/)?.[0]||'',tail=n.nodeValue.match(/\s*$/)?.[0]||''; n.nodeValue=lead+t(base)+tail});
+  nodes.forEach(n=>{if(!n.parentElement || ['SCRIPT','STYLE'].includes(n.parentElement.tagName))return; const base=n.dataset.i18nOriginal??n.nodeValue.trim(); if(!base)return; n.dataset.i18nOriginal=base; const lead=n.nodeValue.match(/^\s*/)?.[0]||'',tail=n.nodeValue.match(/\s*$/)?.[0]||''; n.nodeValue=lead+t(base)+tail});
   root.querySelectorAll('input,textarea').forEach(el=>{const base=el.dataset.i18nPlaceholder??el.placeholder;if(base){el.dataset.i18nPlaceholder=base;el.placeholder=t(base)}});
   if($('language-select')) $('language-select').value=LANG; if($('settings-language')) $('settings-language').value=LANG;
-  } catch (e) { console.warn('Saarthi translation skipped:', e); }
 }
 async function savePrefs(p){try{await api('/api/preferences',{method:'POST',body:JSON.stringify(p)})}catch{}}
 async function loadPrefs(){try{const r=await api('/api/preferences');const p=r.preferences||{};if(p.language){LANG=p.language;localStorage.setItem(LANG_KEY,LANG)}if(typeof p.sound==='boolean')localStorage.setItem('saarthi_sound',p.sound?'1':'0');if(typeof p.tts==='boolean')localStorage.setItem('saarthi_tts',p.tts?'1':'0')}catch{}translatePage();updateSoundUI();await loadRewards()}
@@ -75,12 +106,56 @@ async function shareSaarthi(){const text=LANG==='hi'?'मैं Saarthi से �
 async function showResearchStatus(){try{const r=await api('/api/research/status');const el=$('research-status');if(r.configured){el.className='research-status ready';el.textContent=t('Live web research is ready.')+' · '+r.model}else{el.className='research-status warn';el.textContent=t('Live web research is not configured.')+' '+t('Add OPENAI_API_KEY to the backend .env file and restart npm start.')}}catch{}}
 const originalAsk=ask;
 ask=async function(q){if(!q)return;return originalAsk(q)};
-const originalResearch=research;
-research=async function(){const q=$('research-query').value.trim();if(!q)return;$('research-result').innerHTML=`<div class="result-box">${esc(t('Researching current sources…'))}</div>`;try{const r=await api('/api/research',{method:'POST',body:JSON.stringify({query:q,language:LANG})});const sources=(r.sources||[]).filter(x=>x.url);const sourceHtml=sources.length?`<div class="research-sources">${sources.slice(0,8).map(x=>`<div class="research-source"><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title||x.url)}</a><small>source</small></div>`).join('')}</div>`:'';$('research-result').innerHTML=`<div class="result-box"><b>${esc(t('Research result'))}</b><p>${esc(r.answer||'').replace(/\n/g,'<br>')}</p><small>${r.retrievedAt?'Retrieved '+esc(r.retrievedAt):'Public-source research'}</small>${sourceHtml}</div>`;ping('success')}catch(e){ping('error');const msg=e.message.includes('OPENAI_API_KEY')?t('Live web research is not configured.')+' '+t('Add OPENAI_API_KEY to the backend .env file and restart npm start.'):e.message;$('research-result').innerHTML=`<div class="result-box"><b>${esc(t('Research unavailable'))}</b><p>${esc(msg)}</p><p><small>Research is designed to use live web search with cited sources when the backend API key is configured.</small></p></div>`}}
-function openSettings(){const m=$('settings-modal');if(!m)return;m.classList.remove('hidden');m.setAttribute('aria-hidden','false');$('settings-language').value=LANG;updateSoundUI();loadRewards();ping('open')}
-function closeSettings(){const m=$('settings-modal');if(!m)return;m.classList.add('hidden');m.setAttribute('aria-hidden','true')}
+async function showResearchStatus(){
+  const el=$('research-status');
+  if(!el)return;
+  el.className='research-status';
+  el.textContent='Checking live research…';
+  try{
+    const r=await api('/api/research/status');
+    if(r.configured){
+      el.className='research-status ready';
+      el.textContent=`Live web research is ready · ${r.model}`;
+    }else{
+      el.className='research-status warn';
+      el.textContent=t('Live web research is not configured.')+' '+t('Add OPENAI_API_KEY to the backend .env file and restart npm start.');
+    }
+  }catch{
+    el.className='research-status warn';
+    el.textContent='Research status unavailable. Make sure the backend is running on this same server.';
+  }
+}
+
+async function research(){
+  const q=$('research-query').value.trim();
+  if(!q)return;
+  $('research-result').innerHTML=`<div class="result-box">${esc(t('Researching current sources…'))}<p><small>Searching current public sources and collecting citations.</small></p></div>`;
+  $('research-status').className='research-status';
+  $('research-status').textContent='Live research in progress…';
+  try{
+    const r=await api('/api/research',{method:'POST',body:JSON.stringify({query:q,language:LANG})});
+    const sources=(r.sources||[]).filter(x=>x.url);
+    const sourceHtml=sources.length
+      ? `<div class="research-sources"><div class="eyebrow">SOURCES · ${sources.length}</div>${sources.slice(0,8).map(x=>`<div class="research-source"><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.title||x.url)}</a><small>${esc(x.type||'public')}</small></div>`).join('')}</div>`
+      : '<p class="research-warning">No extractable source records were returned. Treat time-sensitive claims as unverified.</p>';
+    $('research-result').innerHTML=`<div class="result-box"><b>${esc(t('Research result'))}</b><p>${esc(r.answer||'').replace(/\n/g,'<br>')}</p><small>${r.retrievedAt?'Retrieved '+esc(r.retrievedAt):'Public-source research'} · ${r.sourceCount||sources.length} sources</small>${sourceHtml}</div>`;
+    $('research-status').className='research-status ready';
+    $('research-status').textContent=`Live web research completed · ${r.sourceCount||sources.length} sources`;
+    ping('success');
+  }catch(e){
+    ping('error');
+    await showResearchStatus();
+    const msg=e.message.includes('OPENAI_API_KEY')
+      ?t('Live web research is not configured.')+' '+t('Add OPENAI_API_KEY to the backend .env file and restart npm start.')
+      :e.message;
+    $('research-result').innerHTML=`<div class="result-box"><b>${esc(t('Research unavailable'))}</b><p>${esc(msg)}</p><p><small>Research uses the backend Responses API web-search integration. The key must stay server-side.</small></p></div>`;
+  }
+}
+
+function openSettings(){const m=$('settings-modal');m.classList.remove('hidden');$('settings-language').value=LANG;updateSoundUI();loadRewards();ping('open')}
+function closeSettings(){ $('settings-modal').classList.add('hidden') }
 async function saveSettings(){LANG=$('settings-language').value;localStorage.setItem(LANG_KEY,LANG);const sound=$('settings-sound').checked,tts=$('settings-tts').checked;localStorage.setItem('saarthi_sound',sound?'1':'0');localStorage.setItem('saarthi_tts',tts?'1':'0');await savePrefs({language:LANG,sound,tts});translatePage();updateSoundUI();closeSettings();showResearchStatus();ping('success')}
-const oldShow=show; show=function(view){oldShow(view);translatePage()};
+const oldShow=show; show=function(view){oldShow(view);translatePage();if(view==='research')showResearchStatus()};
 const oldRender=render; render=function(a){oldRender(a);translatePage()};
 const oldBindUI=bindUI;
 bindUI=function(){oldBindUI();$('language-select')?.addEventListener('change',e=>setLanguage(e.target.value));$('settings-open')?.addEventListener('click',openSettings);$('settings-close')?.addEventListener('click',closeSettings);document.querySelector('[data-close-settings]')?.addEventListener('click',closeSettings);$('settings-save')?.addEventListener('click',saveSettings);$('share-saarthi')?.addEventListener('click',shareSaarthi);updateSoundUI();translatePage();};

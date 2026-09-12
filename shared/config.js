@@ -1,8 +1,12 @@
 function loadDotEnv(env=process.env){
   try {
     const fs=require('fs'), path=require('path');
-    const file=path.join(process.cwd(), '.env');
-    if(!fs.existsSync(file)) return;
+    const candidates=[
+      path.join(process.cwd(), '.env'),
+      path.join(__dirname, '..', '.env')
+    ];
+    const file=candidates.find(p=>fs.existsSync(p));
+    if(!file) return;
     for(const raw of fs.readFileSync(file,'utf8').split(/\r?\n/)){
       const line=raw.trim(); if(!line || line.startsWith('#')) continue;
       const m=line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/); if(!m) continue;

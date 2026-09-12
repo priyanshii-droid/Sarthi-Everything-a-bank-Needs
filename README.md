@@ -9,7 +9,7 @@ npm install
 npm start
 ```
 
-Then open `http://localhost:3001`.
+Then open `http://localhost:3000`.
 
 If you use AI features, set `OPENAI_API_KEY` in the backend environment. AI is optional for deterministic financial analysis.
 
@@ -163,7 +163,7 @@ A real bank adapter must use the institution/provider's official consent/OAuth f
 - Share-and-earn rewards ledger (+25 points per share action).
 - Research status endpoint and cited source cards.
 - Live research uses the OpenAI Responses API web search tool when `OPENAI_API_KEY` is configured.
-- `.env` is loaded automatically from the project root; restart `npm start` after changing it.
+- `.env` is loaded automatically from the project root even when `npm start` is launched from the parent directory; restart `npm start` after changing it.
 
 ### Enable live research
 
