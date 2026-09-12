@@ -1,0 +1,3 @@
+const {authenticate}=require('../auth/service');
+function authMiddleware(db,{allowDemo=false}={}){return(req,res,next)=>{const h=String(req.headers.authorization||'');const token=h.startsWith('Bearer ')?h.slice(7).trim():'';const auth=authenticate(db,token);if(auth){req.user=auth.user;req.auth=auth;req.authToken=token;return next()}if(allowDemo && req.headers['x-saarthi-session']){req.user={id:`demo_${String(req.headers['x-saarthi-session']).slice(0,80)}`,email:'demo@saarthi.local'};return next()}return res.status(401).json({ok:false,error:{code:'AUTH_REQUIRED',message:'Sign in to use Saarthi.',requestId:req.requestId}})}}
+module.exports={authMiddleware};

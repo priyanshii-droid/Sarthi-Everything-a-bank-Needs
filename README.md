@@ -124,3 +124,33 @@ The intelligence layer now maintains a stronger evidence trail for every investi
 - Investigations expose an evidence-quality score and a `PASS` / `REVIEW_REQUIRED` decision gate.
 - The agent is instructed to disclose verification limitations and never present failed evidence as verified.
 - Deterministic financial calculations remain outside the language model.
+
+
+## Phase 8 — Production hardening
+
+Phase 8 adds the runtime foundations needed before external financial-data integrations:
+
+- persistent session state under `data/sessions.json` with atomic writes and restrictive file permissions
+- cryptographically random session identifiers instead of the previous shared `default` session
+- request rate limiting
+- security response headers and a restrictive default Content Security Policy
+- configurable CORS, proxy trust, upload size, JSON size, and demo mode
+- upload extension allow-list and single-file limits
+- structured data-source registry separating demo/file-import sources from the future bank-provider adapter boundary
+- explicit adapter boundary for future account/transaction providers; Saarthi does not collect banking passwords, PINs, OTPs or CVVs
+- persistence regression tests
+
+### Production deployment notes
+
+The current bank adapter is intentionally a boundary, not a live banking connector. Before production financial connectivity, add an authenticated identity layer, encrypted provider tokens, provider-specific consent/revocation flows, encrypted database storage, audit logging, secret management, and provider webhooks/reconciliation. The local JSON store is suitable for the current single-process product build, not a horizontally scaled production database.
+
+## Phase 9 — authenticated users, database persistence, provider boundary
+- Added SQLite persistence using Node's built-in `node:sqlite` runtime API (no native npm database dependency).
+- Added account registration/login/logout with scrypt password hashing and opaque bearer sessions whose database values are SHA-256 token hashes.
+- Financial workspace state is now persisted per authenticated user instead of browser-generated session IDs.
+- Added provider registry + connection boundary for future bank/open-banking integrations. Provider adapters receive provider-issued authorization context; Saarthi never accepts banking passwords, PINs, OTPs or CVVs.
+- Added provider connection APIs and regression tests.
+- Demo mode creates a disposable authenticated account rather than using a shared financial session.
+
+### Production provider rule
+A real bank adapter must use the institution/provider's official consent/OAuth flow and a secure token vault/KMS. Do not add login/password/OTP/PIN/CVV fields to Saarthi APIs.

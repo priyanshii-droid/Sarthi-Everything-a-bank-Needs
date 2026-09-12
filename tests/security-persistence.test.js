@@ -1,0 +1,20 @@
+const assert = require('assert');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { SessionStore } = require('../storage/session-store');
+const { createSessionId, sanitizeSessionId } = require('../shared/security');
+const { listDataSources } = require('../sources');
+
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(),'saarthi-'));
+const file = path.join(tmp,'sessions.json');
+const store = new SessionStore(file);
+store.save('abc123abc123abc1',{transactions:[{id:'1'}],updatedAt:'now'});
+const store2 = new SessionStore(file);
+assert.equal(store2.get('abc123abc123abc1',()=>({})).transactions.length,1);
+assert.equal(sanitizeSessionId('abc123abc123abc1'),'abc123abc123abc1');
+assert.equal(sanitizeSessionId('default'),null);
+assert.equal(createSessionId().length,48);
+assert.ok(listDataSources().some(x=>x.id==='bank-adapter'));
+fs.rmSync(tmp,{recursive:true,force:true});
+console.log('security-persistence tests passed');

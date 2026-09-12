@@ -7,22 +7,36 @@ const { runDeterministicInvestigation } = require('./intelligence/orchestrator')
 const { getConfig } = require('./shared/config');
 const { AppError, errorBody } = require('./shared/errors');
 const { requestIdMiddleware } = require('./shared/request-id');
+const { securityHeaders, createRateLimiter } = require('./shared/security');
+const { getPersistentState, saveState, resetState, db } = require('./storage/state');
+const { register, login, logout } = require('./auth/service');
+const { authMiddleware } = require('./shared/auth');
+const { listProviders, getProvider } = require('./providers/registry');
+const { listDataSources } = require('./sources');
 const logger = require('./shared/logger');
 const { money, auditTransactions, analyze, investigateFinances, normalizeRows } = require('./core/financial-engine');
 const { parseWorkbook, parseCsvText, parseJsonText, parsePlainText } = require('./core/parser');
 const { simulateScenarios, parseScenarioText } = require('./core/decision-engine');
+const { researchPublicInformation } = require('./research/research-agent');
+const { parseDocument, documentProvenance } = require('./documents/document-parser');
+const { extractFinancialFacts } = require('./documents/extraction');
 
 const config = getConfig();
 const app = express();
 const PORT = config.port;
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.maxUploadBytes } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.maxUploadBytes, files:1 }, fileFilter: (req,file,cb) => { const ext=path.extname(file.originalname||'').toLowerCase(); const allowed=['.xlsx','.xls','.csv','.json','.txt','.pdf','.tsv']; cb(null,allowed.includes(ext)); } });
+app.set('trust proxy', config.trustProxy ? 1 : false);
 app.use(requestIdMiddleware);
-app.use(cors());
-app.use(express.json({ limit: '2mb' }));
+app.use(securityHeaders);
+app.use(createRateLimiter({ windowMs: 60_000, max: config.rateLimitPerMinute }));
+app.use(cors({ origin: config.corsOrigin, methods:['GET','POST'], allowedHeaders:['Content-Type','Authorization','X-Request-ID','X-Saarthi-Session'], exposedHeaders:['X-Request-ID','X-Saarthi-Session'] }));
+app.use(express.json({ limit: config.maxJsonBytes }));
 app.use(express.static(__dirname));
 
 const sessions = new Map();
-function getState(req){ const id=String(req.headers['x-saarthi-session']||'default'); if(!sessions.has(id)) sessions.set(id,{transactions:[],ledger:[],validation:null,reconciliation:null,problem:'',source:'none',filename:'',context:null,history:[]}); return sessions.get(id); }
+const bearerAuth = authMiddleware(db, {allowDemo: config.demoMode});
+function getState(req,res){ const result=getPersistentState(req,res); req.__saarthiSessionId=result.id; sessions.set(result.id,result.state); return result.state; }
+function persist(req,res){ const result=getPersistentState(req,res); saveState(result.id,result.state); return result.state; }
 function setLedger(state, parsed){ state.ledger=parsed.ledger; state.transactions=parsed.ledger; state.validation=parsed.validation; state.reconciliation=parsed.reconciliation; }
 
 const demoRawTransactions = [
@@ -43,15 +57,40 @@ function contextFrom(transactions, problem, source='user-data', filename=''){
 }
 function reset(state){ state.transactions=[];state.ledger=[];state.validation=null;state.reconciliation=null;state.problem='';state.source='none';state.filename='';state.context=null;state.history=[]; }
 
+app.post('/api/auth/register',(req,res)=>{try{const user=register(db,req.body?.email,req.body?.password);const session=login(db,user.email,req.body.password,30);res.status(201).json({ok:true,...session});}catch(e){res.status(400).json({ok:false,error:{code:e.code||'REGISTER_FAILED',message:e.message,requestId:req.requestId}})}});
+app.post('/api/auth/login',(req,res)=>{try{res.json({ok:true,...login(db,req.body?.email,req.body?.password,30)});}catch(e){res.status(401).json({ok:false,error:{code:e.code||'LOGIN_FAILED',message:e.message,requestId:req.requestId}})}});
+app.post('/api/auth/logout',bearerAuth,(req,res)=>{logout(db,req.authToken);res.json({ok:true});});
+app.get('/api/auth/me',bearerAuth,(req,res)=>res.json({ok:true,user:req.user,expiresAt:req.auth.expiresAt}));
+
 const banks=[{id:'sbi',name:'State Bank of India',shortName:'SBI'},{id:'hdfc',name:'HDFC Bank',shortName:'HDFC'},{id:'icici',name:'ICICI Bank',shortName:'ICICI'},{id:'axis',name:'Axis Bank',shortName:'AXIS'}];
 app.get('/api/banks',(req,res)=>res.json(banks));
-app.get('/api/transactions',(req,res)=>{const state=getState(req);res.json({transactions:state.transactions,hasData:state.transactions.length>0});});
-app.get('/api/ledger',(req,res)=>{const state=getState(req);res.json({ok:true,ledgerVersion:1,count:state.ledger.length,ledger:state.ledger,validation:state.validation,reconciliation:state.reconciliation});});
+app.get('/api/data-sources',(req,res)=>res.json({ok:true,sources:[...listDataSources(),...listProviders()]}));
+app.use('/api/transactions',bearerAuth);
+app.use('/api/ledger',bearerAuth);
+app.use('/api/state',bearerAuth);
+app.use('/api/load-sample',bearerAuth);
+app.use('/api/import',bearerAuth);
+app.use('/api/analyze',bearerAuth);
+app.use('/api/investigate',bearerAuth);
+app.use('/api/chat',bearerAuth);
+app.use('/api/simulate',bearerAuth);
+app.use('/api/decision',bearerAuth);
+app.use('/api/reset',bearerAuth);
+app.use('/api/dashboard',bearerAuth);
+app.use('/api/brief',bearerAuth);
+app.use('/api/documents',bearerAuth);
+app.use('/api/provider-connections',bearerAuth);
+
+app.get('/api/transactions',(req,res)=>{const state=getState(req,res);res.json({transactions:state.transactions,hasData:state.transactions.length>0});});
+app.get('/api/ledger',(req,res)=>{const state=getState(req,res);res.json({ok:true,ledgerVersion:1,count:state.ledger.length,ledger:state.ledger,validation:state.validation,reconciliation:state.reconciliation});});
+app.get('/api/provider-connections',(req,res)=>res.json({ok:true,connections:db.listConnections(req.user.id)}));
+app.post('/api/provider-connections',(req,res)=>{const provider=getProvider(req.body?.providerId);if(!provider)return res.status(404).json({ok:false,error:{code:'PROVIDER_NOT_FOUND',message:'Provider adapter is not available.',requestId:req.requestId}});if(!req.body?.externalAccountRef)return res.status(400).json({ok:false,error:{code:'EXTERNAL_REF_REQUIRED',message:'Provider connection reference is required.',requestId:req.requestId}});const connection=db.upsertConnection({id:`conn_${require('crypto').randomBytes(12).toString('hex')}`,userId:req.user.id,providerId:provider.id,externalAccountRef:String(req.body.externalAccountRef),status:'connected',metadata:{scopes:req.body.scopes||[],consentAt:new Date().toISOString()}});res.status(201).json({ok:true,connection});});
+app.delete('/api/provider-connections/:id',(req,res)=>{db.disconnectConnection(req.user.id,req.params.id);res.json({ok:true});});
 app.get('/api/health',(req,res)=>res.json({ok:true,service:'SAARTHI',mode:'user-data-intelligence',requestId:req.requestId}));
-app.get('/api/state',(req,res)=>{const state=getState(req);const a=analyze(state.transactions,state.problem);res.json({hasData:state.ledger.length>0,problem:state.problem,source:state.source,filename:state.filename,context:state.context,analytics:a,transactions:state.ledger.slice(0,100),validation:state.validation,reconciliation:state.reconciliation});});
-app.post('/api/load-sample',(req,res)=>{const state=getState(req);setLedger(state, normalizeRows(demoRawTransactions,{sourceId:'sample'}));state.problem=req.body?.problem||'Help me understand my spending and find a realistic way to save more.';state.source='sample';state.filename='Saarthi example dataset';state.context=contextFrom(state.transactions,state.problem,state.source,state.filename);res.json({ok:true,analytics:analyze(state.transactions,state.problem),context:state.context});});
+app.get('/api/state',(req,res)=>{const state=getState(req,res);const a=analyze(state.transactions,state.problem);res.json({hasData:state.ledger.length>0,problem:state.problem,source:state.source,filename:state.filename,context:state.context,analytics:a,transactions:state.ledger.slice(0,100),validation:state.validation,reconciliation:state.reconciliation});});
+app.post('/api/load-sample',(req,res)=>{const state=getState(req,res);setLedger(state, normalizeRows(demoRawTransactions,{sourceId:'sample'}));state.problem=req.body?.problem||'Help me understand my spending and find a realistic way to save more.';state.source='sample';state.filename='Saarthi example dataset';state.context=contextFrom(state.transactions,state.problem,state.source,state.filename);saveState(req.__saarthiSessionId || req.headers['x-saarthi-session'] || 'default',state); res.json({ok:true,analytics:analyze(state.transactions,state.problem),context:state.context});});
 app.post('/api/import',upload.single('file'),(req,res)=>{
-  const state=getState(req);
+  const state=getState(req,res);
   try{
     let parsed; let source='paste'; let filename='';
     if(req.file){
@@ -64,13 +103,13 @@ app.post('/api/import',upload.single('file'),(req,res)=>{
     } else { parsed=parsePlainText(req.body?.data||'','paste'); }
     if(!parsed.ledger.length) return res.status(400).json({ok:false,error:'I could not detect usable financial rows. Try a spreadsheet with columns like Date, Description/Merchant, Amount and Category, or paste a simple table.',validation:parsed.validation});
     setLedger(state,parsed); state.problem=String(req.body?.problem||'').trim(); state.source=source; state.filename=filename; state.context=contextFrom(state.transactions,state.problem,state.source,state.filename); state.history=[];
-    res.json({ok:true,context:state.context,analytics:analyze(state.ledger,state.problem),sample:state.ledger.slice(0,8),validation:state.validation,reconciliation:state.reconciliation,ledgerVersion:1});
+    saveState(req.__saarthiSessionId || req.headers['x-saarthi-session'] || 'default',state); return res.json({ok:true,context:state.context,analytics:analyze(state.ledger,state.problem),sample:state.ledger.slice(0,8),validation:state.validation,reconciliation:state.reconciliation,ledgerVersion:1});
   }catch(e){res.status(400).json({ok:false,error:`Could not read this file: ${e.message}`});}
 });
-app.post('/api/analyze',(req,res)=>{ const state=getState(req); if(req.body?.problem!==undefined) state.problem=String(req.body.problem); if(!state.transactions.length) return res.status(400).json({ok:false,error:'Give Saarthi some financial data first.'}); state.context=contextFrom(state.transactions,state.problem,state.source,state.filename); const analytics=analyze(state.transactions,state.problem); res.json({ok:true,analytics,context:state.context}); });
-app.post('/api/investigate',async(req,res)=>{ const state=getState(req); if(!state.transactions.length)return res.status(400).json({ok:false,error:'Load financial data first.'}); const problem=String(req.body?.problem??state.problem); try { const result=await runDeterministicInvestigation({state,message:problem,toolkit:{state,analyze,auditTransactions,money,investigateFinances}}); res.json({ok:true,...result}); } catch(e) { throw new AppError('INVESTIGATION_FAILED',e.message,500); } });
+app.post('/api/analyze',(req,res)=>{ const state=getState(req,res); if(req.body?.problem!==undefined) state.problem=String(req.body.problem); if(!state.transactions.length) return res.status(400).json({ok:false,error:'Give Saarthi some financial data first.'}); state.context=contextFrom(state.transactions,state.problem,state.source,state.filename); const analytics=analyze(state.transactions,state.problem); saveState(req.__saarthiSessionId || req.headers['x-saarthi-session'] || 'default',state); res.json({ok:true,analytics,context:state.context}); });
+app.post('/api/investigate',async(req,res)=>{ const state=getState(req,res); if(!state.transactions.length)return res.status(400).json({ok:false,error:'Load financial data first.'}); const problem=String(req.body?.problem??state.problem); try { const result=await runDeterministicInvestigation({state,message:problem,toolkit:{state,analyze,auditTransactions,money,investigateFinances,simulateScenarios}}); saveState(req.__saarthiSessionId || req.headers['x-saarthi-session'] || 'default',state); res.json({ok:true,...result}); } catch(e) { throw new AppError('INVESTIGATION_FAILED',e.message,500); } });
 app.post('/api/chat',async(req,res)=>{
-  const state=getState(req);
+  const state=getState(req,res);
   const q=String(req.body?.message||'').trim();
   if(!q)return res.status(400).json({error:'Ask a question.'});
   if(!state.transactions.length) return res.json({reply:'I’m ready. Upload an Excel/CSV file or paste your financial data first. Then tell me what you want to figure out.',needsData:true});
@@ -80,7 +119,7 @@ app.post('/api/chat',async(req,res)=>{
     const requestedLanguage=String(req.body?.language||'').trim(); const localizedMessage=requestedLanguage?`Respond in ${requestedLanguage==='hi'?'Hindi':requestedLanguage==='gu'?'Gujarati':'English'} unless the user explicitly asks for another language.\n\n${q}`:q; const ai=await runSaarthi({state,message:localizedMessage,toolkit});
     if(ai.configured && ai.reply){
       state.history.push({q,reply:ai.reply,mode:'ai'});
-      return res.json({reply:ai.reply,analytics:analyze(state.transactions,state.problem),mode:'ai'});
+      saveState(req.__saarthiSessionId || req.headers['x-saarthi-session'] || 'default',state); return res.json({reply:ai.reply,analytics:analyze(state.transactions,state.problem),mode:'ai',investigation:ai.investigation||null});
     }
   }catch(e){
     console.error('Saarthi AI error:',e.message);
@@ -97,13 +136,13 @@ app.post('/api/chat',async(req,res)=>{
   else if(/health|score/.test(s)) reply=`Your current Saarthi financial-health indicator is ${a.healthScore}/100. It is an analytical signal based on detected savings rate and expense structure, not a credit score.`;
   else if(/summary|overview|analyse|analyze/.test(s)) reply=`I found ${a.transactionCount} usable transactions: income ${money(a.totalIncome)}, expenses ${money(a.totalExpenses)}, surplus ${money(a.netSavings)} (${a.savingsRate}%). ${a.highestCategory?`Largest category: ${a.highestCategory.category}.`:''} ${a.recommendation}`;
   else reply=`Based on your current data: ${a.recommendation} Ask me about affordability, saving, a category, unusual spending, or a specific what-if scenario.`;
-  state.history.push({q,reply,mode:'fallback'}); res.json({reply,analytics:a,mode:'fallback'});
+  state.history.push({q,reply,mode:'fallback'}); saveState(req.__saarthiSessionId || req.headers['x-saarthi-session'] || 'default',state); return res.json({reply,analytics:a,mode:'fallback'});
 });
 
 app.get('/api/ai-status',(req,res)=>res.json({configured:Boolean(config.openAIKey),model:config.model}));
 
 app.post('/api/simulate',(req,res)=>{
-  const state=getState(req);
+  const state=getState(req,res);
   if(!state.transactions.length)return res.status(400).json({ok:false,error:'Load data first.'});
   const body=req.body||{};
   let scenarios=Array.isArray(body.scenarios)?body.scenarios.slice(0,8):[];
@@ -115,31 +154,37 @@ app.post('/api/simulate',(req,res)=>{
   res.json({...result,category:last?.category||null,reduction:last?.percent?Math.abs(last.percent):0,categoryAmount:last?.affectedAmount||0,savingsPerPeriod:last?.affectedAmount||0,yearlySavings:Math.round((last?.affectedAmount||0)*12),newSurplus:result.final.surplus});
 });
 app.post('/api/decision',(req,res)=>{
-  const state=getState(req);
+  const state=getState(req,res);
   if(!state.transactions.length)return res.status(400).json({ok:false,error:'Load data first.'});
   const scenarios=Array.isArray(req.body?.scenarios)?req.body.scenarios:[parseScenarioText(req.body?.scenario||'')];
   if(scenarios.some(x=>x?.error))return res.status(400).json({ok:false,error:scenarios.find(x=>x?.error).error});
   res.json(simulateScenarios(state.transactions,analyze,scenarios));
 });
-app.post('/api/reset',(req,res)=>{const state=getState(req);reset(state);res.json({ok:true});});
-app.get('/api/dashboard',(req,res)=>{const state=getState(req);const a=analyze(state.transactions,state.problem);res.json({balance:null,...a,recentTransactions:state.transactions.slice(0,8),hasData:state.transactions.length>0});});
+app.post('/api/reset',(req,res)=>{const state=getState(req,res);reset(state);saveState(req.__saarthiSessionId || req.headers['x-saarthi-session'] || 'default',state); res.json({ok:true});});
+app.get('/api/dashboard',(req,res)=>{const state=getState(req,res);const a=analyze(state.transactions,state.problem);res.json({balance:null,...a,recentTransactions:state.transactions.slice(0,8),hasData:state.transactions.length>0});});
 
-// Batch 3: current public-information research + Batch 4: product intelligence APIs
+// Phase 5: research + document intelligence
 app.post('/api/research', async (req,res) => {
   const query=String(req.body?.query||'').trim();
   if(!query) return res.status(400).json({ok:false,error:'Tell Saarthi what you want researched.'});
-  const key=config.openAIKey;
-  if(!key) return res.status(503).json({ok:false,configured:false,error:'Web research needs OPENAI_API_KEY in the backend environment.'});
   try {
-    const r=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model:config.model,store:false,instructions:'You are Saarthi Web Intelligence. Research current public information carefully. Prefer primary/official sources. Separate verified facts from interpretation. Never invent eligibility, fees, deadlines or rules. Give concise findings, practical next steps, and mention source names/URLs when available.',input:query,tools:[{type:'web_search'}]})});
-    const data=await r.json();
-    if(!r.ok) throw new Error(data?.error?.message||`Research request failed (${r.status})`);
-    res.json({ok:true,answer:data.output_text||'No research answer was returned.',rawOutput:data.output||[]});
+    const result=await researchPublicInformation({query,apiKey:config.openAIKey,model:config.model});
+    if(!result.ok) return res.status(503).json(result);
+    res.json(result);
   } catch(e){res.status(502).json({ok:false,error:`Web research failed: ${e.message}`});}
 });
 
+app.post('/api/documents/inspect', upload.single('file'), (req,res) => {
+  if(!req.file) return res.status(400).json({ok:false,error:'Attach a financial document first.'});
+  try {
+    const parsed=parseDocument(req.file.buffer,req.file.originalname);
+    const facts=extractFinancialFacts(parsed);
+    res.json({ok:true,document:req.file.originalname,kind:parsed.kind,ledgerVersion:1,count:parsed.ledger.length,validation:parsed.validation,reconciliation:parsed.reconciliation,provenance:documentProvenance(parsed,req.file.originalname),facts});
+  } catch(e){res.status(400).json({ok:false,error:`Could not inspect this document: ${e.message}`});}
+});
+
 app.get('/api/brief',(req,res)=>{
-  const state=getState(req); if(!state.transactions.length)return res.status(400).json({ok:false,error:'Load financial data first.'});
+  const state=getState(req,res); if(!state.transactions.length)return res.status(400).json({ok:false,error:'Load financial data first.'});
   const a=analyze(state.transactions,state.problem), inv=investigateFinances(state.transactions,state.problem);
   res.json({ok:true,generatedAt:new Date().toISOString(),snapshot:{transactions:a.transactionCount,periods:a.periods,income:a.totalIncome,expenses:a.totalExpenses,surplus:a.netSavings,savingsRate:a.savingsRate,healthScore:a.healthScore,coverage:a.audit.coverage},findings:inv.findings.slice(0,8),actions:inv.actions.slice(0,6),limitations:inv.limitations});
 });
