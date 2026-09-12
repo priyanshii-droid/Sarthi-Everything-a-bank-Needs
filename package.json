@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "start": "node server.js",
+    "test": "node tests/financial-engine.test.js && node tests/parser.test.js && node tests/config.test.js",
+    "check": "node --check server.js && node --check app.js && node --check ai/agent.js && node --check ai/prompts.js && node --check ai/tools.js && node --check core/financial-engine.js && node --check core/parser.js && node --check shared/config.js && node --check shared/errors.js && node --check shared/logger.js && node --check shared/request-id.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "multer": "^2.0.2",
+    "xlsx": "^0.18.5"
+  }
+}
