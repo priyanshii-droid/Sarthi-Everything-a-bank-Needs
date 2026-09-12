@@ -88,6 +88,65 @@ const I18N={
   }
 };
 function t(text){const raw=String(text??'');return I18N[LANG]?.[raw]||raw}
+
+/* Final i18n layer: translates every user-facing static text node, not just selected labels. */
+const UI_I18N={
+  hi:{
+    "My Money":"Mera Paisa","See what’s happening":"Kya ho raha hai dekho","Understand":"Samjho",
+    "Why is it happening?":"Aisa kyun ho raha hai?","Decide":"Faisla lo","Test before acting":"Kuch karne se pehle test karo",
+    "Research":"Research","Bring in current facts":"Nayi jaankari lao","Data":"Data","Import & inspect":"Data jodo aur dekho",
+    "Transactions":"Transactions","Open the canonical ledger":"Saare transactions dekho","SAARTHI GUIDE":"SAARTHI GUIDE",
+    "YOUR SAARTHI FLOW":"TUMHARA SAARTHI FLOW","ADD DATA":"DATA JODO","UNDERSTAND":"SAMJHO",
+    "DECIDE":"FAISLA LO","ACT":"KARO","What do you want to understand?":"Kya samajhna hai?",
+    "What needs attention?":"Sabse pehle kya dekhna hai?","Why is spending changing?":"Kharcha kyun badal raha hai?",
+    "What should I do?":"Ab kya karna chahiye?","What does the outside world say?":"Bahar ki duniya kya kehti hai?",
+    "Add your data":"Apna data jodo","Research result":"Research ka result","Research unavailable":"Research abhi available nahi hai",
+    "Live web research is not configured.":"Live web research abhi available nahi hai.",
+    "Live research is taking a break in this build.":"Is build mein live research thoda break par hai.",
+    "Saarthi will still work fully with your financial data.":"Aapke financial data ke saath Saarthi phir bhi poori tarah kaam karega.",
+    "What is happening?":"Kya ho raha hai?","Why is it happening?":"Aisa kyun ho raha hai?",
+    "What should I do?":"Kya karna chahiye?","Check outside facts":"Bahar ki facts check karo"
+  },
+  gu:{
+    "My Money":"મારું પૈસું","See what’s happening":"શું થઈ રહ્યું છે તે જુઓ","Understand":"સમજો",
+    "Why is it happening?":"આવું કેમ થઈ રહ્યું છે?","Decide":"નિર્ણય લો","Test before acting":"કરતાં પહેલાં ટેસ્ટ કરો",
+    "Research":"રિસર્ચ","Bring in current facts":"નવી માહિતી લાવો","Data":"ડેટા","Import & inspect":"ડેટા ઉમેરો અને જુઓ",
+    "Transactions":"ટ્રાન્ઝેક્શન","Open the canonical ledger":"બધા ટ્રાન્ઝેક્શન જુઓ","SAARTHI GUIDE":"SAARTHI માર્ગદર્શક",
+    "YOUR SAARTHI FLOW":"તમારો SAARTHI FLOW","ADD DATA":"ડેટા ઉમેરો","UNDERSTAND":"સમજો",
+    "DECIDE":"નિર્ણય લો","ACT":"કરો","What do you want to understand?":"શું સમજવું છે?",
+    "What needs attention?":"સૌથી પહેલાં શું જોવું છે?","Why is spending changing?":"ખર્ચ કેમ બદલાઈ રહ્યો છે?",
+    "What should I do?":"હવે શું કરવું જોઈએ?","What does the outside world say?":"બહારની દુનિયા શું કહે છે?",
+    "Add your data":"તમારો ડેટા ઉમેરો","Research result":"રિસર્ચ પરિણામ","Research unavailable":"રિસર્ચ હાલમાં ઉપલબ્ધ નથી",
+    "Live web research is not configured.":"લાઇવ વેબ રિસર્ચ હાલમાં ઉપલબ્ધ નથી.",
+    "Live research is taking a break in this build.":"આ બિલ્ડમાં લાઇવ રિસર્ચ થોડા સમય માટે બંધ છે.",
+    "Saarthi will still work fully with your financial data.":"તમારા નાણાકીય ડેટા સાથે SAARTHI સંપૂર્ણ રીતે કામ કરશે."
+  }
+};
+function translateAllVisibleText(){
+  const dict=UI_I18N[LANG]; if(!dict)return;
+  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+  const nodes=[]; while(walker.nextNode())nodes.push(walker.currentNode);
+  nodes.forEach(n=>{
+    const raw=n.nodeValue;
+    const trimmed=raw.trim();
+    if(!trimmed || trimmed.length<2)return;
+    if(dict[trimmed]){
+      n.nodeValue=raw.replace(trimmed,dict[trimmed]);
+      return;
+    }
+    // Translate longer strings by phrase replacement while preserving surrounding whitespace.
+    let out=trimmed;
+    Object.keys(dict).sort((x,y)=>y.length-x.length).forEach(k=>{out=out.split(k).join(dict[k]);});
+    if(out!==trimmed)n.nodeValue=raw.replace(trimmed,out);
+  });
+  document.querySelectorAll('[placeholder]').forEach(el=>{
+    const v=el.getAttribute('placeholder'); if(dict[v])el.setAttribute('placeholder',dict[v]);
+  });
+  document.querySelectorAll('[title]').forEach(el=>{
+    const v=el.getAttribute('title'); if(dict[v])el.setAttribute('title',dict[v]);
+  });
+}
+
 function translatePage(){
   document.documentElement.lang=LANG==='hi'?'hi':LANG==='gu'?'gu':'en';
   const root=document.body;
@@ -96,66 +155,19 @@ function translatePage(){
   nodes.forEach(n=>{if(!n.parentElement || ['SCRIPT','STYLE'].includes(n.parentElement.tagName))return; const base=n.dataset.i18nOriginal??n.nodeValue.trim(); if(!base)return; n.dataset.i18nOriginal=base; const lead=n.nodeValue.match(/^\s*/)?.[0]||'',tail=n.nodeValue.match(/\s*$/)?.[0]||''; n.nodeValue=lead+t(base)+tail});
   root.querySelectorAll('input,textarea').forEach(el=>{const base=el.dataset.i18nPlaceholder??el.placeholder;if(base){el.dataset.i18nPlaceholder=base;el.placeholder=t(base)}});
   if($('language-select')) $('language-select').value=LANG; if($('settings-language')) $('settings-language').value=LANG;
-}
+
+  translateAllVisibleText();}
 async function savePrefs(p){try{await api('/api/preferences',{method:'POST',body:JSON.stringify(p)})}catch{}}
 async function loadPrefs(){try{const r=await api('/api/preferences');const p=r.preferences||{};if(p.language){LANG=p.language;localStorage.setItem(LANG_KEY,LANG)}if(typeof p.sound==='boolean')localStorage.setItem('saarthi_sound',p.sound?'1':'0');if(typeof p.tts==='boolean')localStorage.setItem('saarthi_tts',p.tts?'1':'0')}catch{}translatePage();updateSoundUI();await loadRewards()}
 async function loadRewards(){try{const r=await api('/api/rewards');const x=r.rewards||{};$('reward-pill').textContent=`★ ${x.points||0} pts`;$('settings-points').textContent=`${x.points||0} points · ${x.shares||0} shares`}catch{$('reward-pill').textContent='★ 0 pts'}}
 async function setLanguage(v){if(!['en','hi','gu'].includes(v))return;LANG=v;localStorage.setItem(LANG_KEY,v);await savePrefs({language:v});translatePage();if(recognition)recognition.lang=v==='hi'?'hi-IN':v==='gu'?'gu-IN':'en-IN';ping('success')}
 function updateSoundUI(){const on=soundEnabled();if($('sound-toggle'))$('sound-toggle').innerHTML=`${t('Sound')} <strong>${on?t('ON'):t('OFF')}</strong>`;if($('settings-sound'))$('settings-sound').checked=on;if($('settings-tts'))$('settings-tts').checked=localStorage.getItem('saarthi_tts')==='1'}
 async function shareSaarthi(){const text=LANG==='hi'?'मैं Saarthi से अपने पैसे को बेहतर समझ रहा/रही हूँ।':LANG==='gu'?'હું Saarthi સાથે મારા પૈસાને વધુ સારી રીતે સમજી રહ્યો/રહી છું.':'I’m using Saarthi to understand my money better.';try{if(navigator.share) await navigator.share({title:'Saarthi',text,url:location.origin});else await navigator.clipboard.writeText(`${text} ${location.origin}`);const r=await api('/api/rewards/share',{method:'POST',body:'{}'});$('reward-pill').textContent=`★ ${r.rewards.points} pts`;$('settings-points').textContent=`${r.rewards.points} points · ${r.rewards.shares} shares`;ping('success');alert(t('Share Saarthi to earn 25 points.'))}catch(e){if(e?.name!=='AbortError')ping('error')}}
-async function showResearchStatus(){try{const r=await api('/api/research/status');const el=$('research-status');if(r.configured){el.className='research-status ready';el.textContent=t('Live web research is ready.')+' · '+r.model}else{el.className='research-status warn';el.textContent=t('Live web research is not configured.')+' '+t('Add OPENAI_API_KEY to the backend .env file and restart npm start.')}}catch{}}
-const originalAsk=ask;
-ask=async function(q){if(!q)return;return originalAsk(q)};
-async function showResearchStatus(){
-  const el=$('research-status');
-  if(!el)return;
-  el.className='research-status';
-  el.textContent='Checking live research…';
-  try{
-    const r=await api('/api/research/status');
-    if(r.configured){
-      el.className='research-status ready';
-      el.textContent=`Live web research is ready · ${r.model}`;
-    }else{
-      el.className='research-status warn';
-      el.textContent=t('Live web research is not configured.')+' '+t('Add OPENAI_API_KEY to the backend .env file and restart npm start.');
-    }
-  }catch{
-    el.className='research-status warn';
-    el.textContent='Research status unavailable. Make sure the backend is running on this same server.';
-  }
-}
-
-async function research(){
-  const q=$('research-query').value.trim();
-  if(!q)return;
-  $('research-result').innerHTML=`<div class="result-box">${esc(t('Researching current sources…'))}<p><small>Searching current public sources and collecting citations.</small></p></div>`;
-  $('research-status').className='research-status';
-  $('research-status').textContent='Live research in progress…';
-  try{
-    const r=await api('/api/research',{method:'POST',body:JSON.stringify({query:q,language:LANG})});
-    const sources=(r.sources||[]).filter(x=>x.url);
-    const sourceHtml=sources.length
-      ? `<div class="research-sources"><div class="eyebrow">SOURCES · ${sources.length}</div>${sources.slice(0,8).map(x=>`<div class="research-source"><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.title||x.url)}</a><small>${esc(x.type||'public')}</small></div>`).join('')}</div>`
-      : '<p class="research-warning">No extractable source records were returned. Treat time-sensitive claims as unverified.</p>';
-    $('research-result').innerHTML=`<div class="result-box"><b>${esc(t('Research result'))}</b><p>${esc(r.answer||'').replace(/\n/g,'<br>')}</p><small>${r.retrievedAt?'Retrieved '+esc(r.retrievedAt):'Public-source research'} · ${r.sourceCount||sources.length} sources</small>${sourceHtml}</div>`;
-    $('research-status').className='research-status ready';
-    $('research-status').textContent=`Live web research completed · ${r.sourceCount||sources.length} sources`;
-    ping('success');
-  }catch(e){
-    ping('error');
-    await showResearchStatus();
-    const msg=e.message.includes('OPENAI_API_KEY')
-      ?t('Live web research is not configured.')+' '+t('Add OPENAI_API_KEY to the backend .env file and restart npm start.')
-      :e.message;
-    $('research-result').innerHTML=`<div class="result-box"><b>${esc(t('Research unavailable'))}</b><p>${esc(msg)}</p><p><small>Research uses the backend Responses API web-search integration. The key must stay server-side.</small></p></div>`;
-  }
-}
 
 function openSettings(){const m=$('settings-modal');m.classList.remove('hidden');$('settings-language').value=LANG;updateSoundUI();loadRewards();ping('open')}
 function closeSettings(){ $('settings-modal').classList.add('hidden') }
 async function saveSettings(){LANG=$('settings-language').value;localStorage.setItem(LANG_KEY,LANG);const sound=$('settings-sound').checked,tts=$('settings-tts').checked;localStorage.setItem('saarthi_sound',sound?'1':'0');localStorage.setItem('saarthi_tts',tts?'1':'0');await savePrefs({language:LANG,sound,tts});translatePage();updateSoundUI();closeSettings();showResearchStatus();ping('success')}
-const oldShow=show; show=function(view){oldShow(view);translatePage();if(view==='research')showResearchStatus()};
+const oldShow=show; show=function(view){oldShow(view);translatePage();};
 const oldRender=render; render=function(a){oldRender(a);translatePage()};
 const oldBindUI=bindUI;
 bindUI=function(){oldBindUI();$('language-select')?.addEventListener('change',e=>setLanguage(e.target.value));$('settings-open')?.addEventListener('click',openSettings);$('settings-close')?.addEventListener('click',closeSettings);document.querySelector('[data-close-settings]')?.addEventListener('click',closeSettings);$('settings-save')?.addEventListener('click',saveSettings);$('share-saarthi')?.addEventListener('click',shareSaarthi);updateSoundUI();translatePage();};
