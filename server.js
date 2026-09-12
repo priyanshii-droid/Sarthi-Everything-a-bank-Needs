@@ -3,6 +3,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const { runSaarthi } = require('./ai/agent');
+const { runDeterministicInvestigation } = require('./intelligence/orchestrator');
 const { getConfig } = require('./shared/config');
 const { AppError, errorBody } = require('./shared/errors');
 const { requestIdMiddleware } = require('./shared/request-id');
@@ -66,7 +67,7 @@ app.post('/api/import',upload.single('file'),(req,res)=>{
   }catch(e){res.status(400).json({ok:false,error:`Could not read this file: ${e.message}`});}
 });
 app.post('/api/analyze',(req,res)=>{ const state=getState(req); if(req.body?.problem!==undefined) state.problem=String(req.body.problem); if(!state.transactions.length) return res.status(400).json({ok:false,error:'Give Saarthi some financial data first.'}); state.context=contextFrom(state.transactions,state.problem,state.source,state.filename); const analytics=analyze(state.transactions,state.problem); res.json({ok:true,analytics,context:state.context}); });
-app.post('/api/investigate',(req,res)=>{ const state=getState(req); if(!state.transactions.length)return res.status(400).json({ok:false,error:'Load financial data first.'}); const result=investigateFinances(state.transactions,req.body?.problem??state.problem); res.json({ok:true,...result}); });
+app.post('/api/investigate',async(req,res)=>{ const state=getState(req); if(!state.transactions.length)return res.status(400).json({ok:false,error:'Load financial data first.'}); const problem=String(req.body?.problem??state.problem); try { const result=await runDeterministicInvestigation({state,message:problem,toolkit:{state,analyze,auditTransactions,money,investigateFinances}}); res.json({ok:true,...result}); } catch(e) { throw new AppError('INVESTIGATION_FAILED',e.message,500); } });
 app.post('/api/chat',async(req,res)=>{
   const state=getState(req);
   const q=String(req.body?.message||'').trim();
@@ -140,4 +141,5 @@ app.use((err, req, res, next) => {
 });
 
 
-app.listen(PORT,()=>logger.info('server_started',{port:PORT,model:config.model,aiConfigured:Boolean(config.openAIKey)}));
+if (require.main === module) app.listen(PORT,()=>logger.info('server_started',{port:PORT,model:config.model,aiConfigured:Boolean(config.openAIKey)}));
+module.exports = { app, sessions, getState, setLedger };

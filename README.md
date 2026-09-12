@@ -89,3 +89,12 @@ Run checks with:
 npm test
 npm run check
 ```
+
+
+## Phase 2 — Investigation Engine + Agent Orchestration
+
+Saarthi now separates an investigation into: intent classification → investigation plan → deterministic evidence collection → verification → AI explanation.
+
+The `/api/investigate` endpoint returns the investigation plan, evidence trail, and verification checks. `/api/chat` uses the same orchestration before asking the AI to explain the result.
+
+AI remains the explanation/reasoning layer; deterministic financial calculations remain in the financial engine.
