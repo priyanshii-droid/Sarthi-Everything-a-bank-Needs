@@ -1,15 +1,14 @@
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const XLSX = require('xlsx');
 const path = require('path');
 const { runSaarthi } = require('./ai/agent');
 const { getConfig } = require('./shared/config');
 const { AppError, errorBody } = require('./shared/errors');
 const { requestIdMiddleware } = require('./shared/request-id');
 const logger = require('./shared/logger');
-const { money, auditTransactions, analyze, investigateFinances } = require('./core/financial-engine');
-const { normalizeRows, parseText } = require('./core/parser');
+const { money, auditTransactions, analyze, investigateFinances, normalizeRows } = require('./core/financial-engine');
+const { parseWorkbook, parseCsvText, parseJsonText, parsePlainText } = require('./core/parser');
 
 const config = getConfig();
 const app = express();
@@ -21,9 +20,10 @@ app.use(express.json({ limit: '2mb' }));
 app.use(express.static(__dirname));
 
 const sessions = new Map();
-function getState(req){ const id=String(req.headers['x-saarthi-session']||'default'); if(!sessions.has(id)) sessions.set(id,{transactions:[],problem:'',source:'none',filename:'',context:null,history:[]}); return sessions.get(id); }
+function getState(req){ const id=String(req.headers['x-saarthi-session']||'default'); if(!sessions.has(id)) sessions.set(id,{transactions:[],ledger:[],validation:null,reconciliation:null,problem:'',source:'none',filename:'',context:null,history:[]}); return sessions.get(id); }
+function setLedger(state, parsed){ state.ledger=parsed.ledger; state.transactions=parsed.ledger; state.validation=parsed.validation; state.reconciliation=parsed.reconciliation; }
 
-const demoTransactions = [
+const demoRawTransactions = [
   {date:'2026-09-10', merchant:'Swiggy', category:'Food', amount:-420},
   {date:'2026-09-09', merchant:'Amazon', category:'Shopping', amount:-1299},
   {date:'2026-09-08', merchant:'Uber', category:'Transport', amount:-280},
@@ -37,28 +37,32 @@ const demoTransactions = [
 
 function contextFrom(transactions, problem, source='user-data', filename=''){
   const a=analyze(transactions,problem);
-  return {source,filename,problem,detected:a.transactionCount,columns:['date','merchant','category','amount'],periods:a.periods,totalIncome:a.totalIncome,totalExpenses:a.totalExpenses,audit:a.audit};
+  return {source,filename,problem,detected:a.transactionCount,columns:['date','description','merchant','category','amount','direction','currency','sourceRow'],periods:a.periods,totalIncome:a.totalIncome,totalExpenses:a.totalExpenses,audit:a.audit};
 }
-function reset(state){ state.transactions=[];state.problem='';state.source='none';state.filename='';state.context=null;state.history=[]; }
+function reset(state){ state.transactions=[];state.ledger=[];state.validation=null;state.reconciliation=null;state.problem='';state.source='none';state.filename='';state.context=null;state.history=[]; }
 
 const banks=[{id:'sbi',name:'State Bank of India',shortName:'SBI'},{id:'hdfc',name:'HDFC Bank',shortName:'HDFC'},{id:'icici',name:'ICICI Bank',shortName:'ICICI'},{id:'axis',name:'Axis Bank',shortName:'AXIS'}];
 app.get('/api/banks',(req,res)=>res.json(banks));
 app.get('/api/transactions',(req,res)=>{const state=getState(req);res.json({transactions:state.transactions,hasData:state.transactions.length>0});});
+app.get('/api/ledger',(req,res)=>{const state=getState(req);res.json({ok:true,ledgerVersion:1,count:state.ledger.length,ledger:state.ledger,validation:state.validation,reconciliation:state.reconciliation});});
 app.get('/api/health',(req,res)=>res.json({ok:true,service:'SAARTHI',mode:'user-data-intelligence',requestId:req.requestId}));
-app.get('/api/state',(req,res)=>{const state=getState(req);const a=analyze(state.transactions,state.problem);res.json({hasData:state.transactions.length>0,problem:state.problem,source:state.source,filename:state.filename,context:state.context,analytics:a,transactions:state.transactions.slice(0,100)});});
-app.post('/api/load-sample',(req,res)=>{const state=getState(req);state.transactions=demoTransactions;state.problem=req.body?.problem||'Help me understand my spending and find a realistic way to save more.';state.source='sample';state.filename='Saarthi example dataset';state.context=contextFrom(state.transactions,state.problem,state.source,state.filename);res.json({ok:true,analytics:analyze(state.transactions,state.problem),context:state.context});});
+app.get('/api/state',(req,res)=>{const state=getState(req);const a=analyze(state.transactions,state.problem);res.json({hasData:state.ledger.length>0,problem:state.problem,source:state.source,filename:state.filename,context:state.context,analytics:a,transactions:state.ledger.slice(0,100),validation:state.validation,reconciliation:state.reconciliation});});
+app.post('/api/load-sample',(req,res)=>{const state=getState(req);setLedger(state, normalizeRows(demoRawTransactions,{sourceId:'sample'}));state.problem=req.body?.problem||'Help me understand my spending and find a realistic way to save more.';state.source='sample';state.filename='Saarthi example dataset';state.context=contextFrom(state.transactions,state.problem,state.source,state.filename);res.json({ok:true,analytics:analyze(state.transactions,state.problem),context:state.context});});
 app.post('/api/import',upload.single('file'),(req,res)=>{
   const state=getState(req);
   try{
-    let rows=[]; let source='paste'; let filename='';
-    if(req.file){ filename=req.file.originalname; const ext=path.extname(filename).toLowerCase(); source=ext.replace('.','')||'file';
-      if(['.xlsx','.xls','.csv'].includes(ext)){ const wb=XLSX.read(req.file.buffer,{type:'buffer',cellDates:true}); const sheet=wb.Sheets[wb.SheetNames[0]]; rows=normalizeRows(XLSX.utils.sheet_to_json(sheet,{defval:''})); }
-      else if(ext==='.json'){ rows=normalizeRows(JSON.parse(req.file.buffer.toString('utf8'))); }
-      else rows=parseText(req.file.buffer.toString('utf8'));
-    } else { rows=parseText(req.body?.data||''); source='paste'; }
-    if(!rows.length) return res.status(400).json({ok:false,error:'I could not detect usable financial rows. Try a spreadsheet with columns like Date, Description/Merchant, Amount and Category, or paste a simple table.'});
-    state.transactions=rows; state.problem=String(req.body?.problem||'').trim(); state.source=source; state.filename=filename; state.context=contextFrom(rows,state.problem,state.source,state.filename); state.history=[];
-    res.json({ok:true,context:state.context,analytics:analyze(rows,state.problem),sample:rows.slice(0,8)});
+    let parsed; let source='paste'; let filename='';
+    if(req.file){
+      filename=req.file.originalname; const ext=path.extname(filename).toLowerCase(); source=ext.replace('.','')||'file';
+      const sourceId=`${Date.now()}-${filename}`;
+      if(['.xlsx','.xls'].includes(ext)) parsed=parseWorkbook(req.file.buffer,sourceId);
+      else if(ext==='.csv') parsed=parseCsvText(req.file.buffer.toString('utf8'),sourceId);
+      else if(ext==='.json') parsed=parseJsonText(req.file.buffer.toString('utf8'),sourceId);
+      else parsed=parsePlainText(req.file.buffer.toString('utf8'),sourceId);
+    } else { parsed=parsePlainText(req.body?.data||'','paste'); }
+    if(!parsed.ledger.length) return res.status(400).json({ok:false,error:'I could not detect usable financial rows. Try a spreadsheet with columns like Date, Description/Merchant, Amount and Category, or paste a simple table.',validation:parsed.validation});
+    setLedger(state,parsed); state.problem=String(req.body?.problem||'').trim(); state.source=source; state.filename=filename; state.context=contextFrom(state.transactions,state.problem,state.source,state.filename); state.history=[];
+    res.json({ok:true,context:state.context,analytics:analyze(state.ledger,state.problem),sample:state.ledger.slice(0,8),validation:state.validation,reconciliation:state.reconciliation,ledgerVersion:1});
   }catch(e){res.status(400).json({ok:false,error:`Could not read this file: ${e.message}`});}
 });
 app.post('/api/analyze',(req,res)=>{ const state=getState(req); if(req.body?.problem!==undefined) state.problem=String(req.body.problem); if(!state.transactions.length) return res.status(400).json({ok:false,error:'Give Saarthi some financial data first.'}); state.context=contextFrom(state.transactions,state.problem,state.source,state.filename); const analytics=analyze(state.transactions,state.problem); res.json({ok:true,analytics,context:state.context}); });
@@ -134,5 +138,6 @@ app.use((err, req, res, next) => {
   logger.error('request_failed', { ...req._requestLog, requestId:req.requestId, errorCode:error.code, error:error.message });
   res.status(error.status).json(errorBody(error, req.requestId));
 });
+
 
 app.listen(PORT,()=>logger.info('server_started',{port:PORT,model:config.model,aiConfigured:Boolean(config.openAIKey)}));

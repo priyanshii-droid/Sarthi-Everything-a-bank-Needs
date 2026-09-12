@@ -57,3 +57,35 @@ The tests cover financial totals/sign handling, duplicate detection, parser norm
 ## Important
 
 Do not copy individual snippets from an older Saarthi version into this project. Treat this folder as the coherent baseline and make future changes against it.
+
+
+## Phase 1 — Canonical Financial Intelligence Engine
+
+The financial data path now uses a canonical ledger rather than calculating directly from raw spreadsheet rows.
+
+```text
+RAW FILE / PASTE
+    ↓
+PARSER
+    ↓
+NORMALIZER
+    ↓
+VALIDATION + QUALITY FLAGS
+    ↓
+CANONICAL LEDGER
+    ↓
+RECONCILIATION
+    ↓
+FINANCIAL METRICS
+    ↓
+AUDIT / INVESTIGATION
+```
+
+Each canonical transaction carries a stable source row, direction, signed amount, absolute amount, currency, category confidence, and quality flags. The API exposes the ledger at `GET /api/ledger`. Existing `/api/analyze`, `/api/investigate`, `/api/chat`, dashboard, and simulation routes continue to consume the canonical ledger.
+
+Run checks with:
+
+```bash
+npm test
+npm run check
+```
