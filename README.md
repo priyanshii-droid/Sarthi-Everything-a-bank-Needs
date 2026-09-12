@@ -1,175 +1,129 @@
-# Saarthi — Financial Intelligence Foundation
+# Saarthi — Financial Intelligence
 
-This build is the Phase 0 foundation reset for Saarthi. The project is now organized so the financial reasoning engine, parser, AI layer, shared configuration/error handling, and API layer have clear boundaries.
+Saarthi is a financial-intelligence workspace built around a canonical ledger, deterministic financial calculations, investigation/evidence verification, decision simulation, research, document intelligence, authentication and persistent user state.
 
-## Run
+## Product flow
+
+Saarthi is intentionally organized around the user's financial journey:
+
+1. **My Data** — load the financial facts.
+2. **My Money** — see the current financial picture.
+3. **Understand** — audit, investigate and verify what is happening.
+4. **Spending** — inspect the canonical ledger.
+5. **Decide** — run Digital Twin scenarios without changing real data.
+6. **Research** — bring current public information and cited sources into the decision.
+
+The user can also skip the sequence and ask Saarthi directly in natural language.
+
+## Requirements
+
+- Node.js **22+**
+- npm
+- An OpenAI API key for live web research and optional AI reasoning
+
+## Local deployment
 
 ```bash
 npm install
+cp .env.example .env
 npm start
 ```
 
-Then open `http://localhost:3000`.
+Open:
 
-If you use AI features, set `OPENAI_API_KEY` in the backend environment. AI is optional for deterministic financial analysis.
-
-## Structure
-
-- `server.js` — API composition and HTTP routes
-- `core/financial-engine.js` — deterministic financial calculations, audit and investigation
-- `core/parser.js` — spreadsheet/text normalization helpers
-- `ai/agent.js` — Saarthi AI orchestration
-- `ai/tools.js` — AI tool definitions/executors
-- `ai/prompts.js` — Saarthi reasoning policy
-- `shared/config.js` — validated runtime configuration
-- `shared/errors.js` — structured API errors
-- `shared/request-id.js` — request correlation IDs
-- `shared/logger.js` — structured server logging
-- `tests/` — regression tests for the foundation
-- `index.html`, `app.js`, `style.css` — current UI, retained while the intelligence foundation is rebuilt
-
-## API error format
-
-Errors use a stable envelope:
-
-```json
-{
-  "ok": false,
-  "error": {
-    "code": "REQUEST_ERROR",
-    "message": "...",
-    "requestId": "..."
-  }
-}
+```text
+http://localhost:3000
 ```
 
-The response also includes an `X-Request-ID` header for troubleshooting.
+The server reads `.env` automatically. Restart `npm start` after changing environment variables.
+
+### OpenAI configuration
+
+Set:
+
+```env
+OPENAI_API_KEY=your_real_key
+SAARTHI_MODEL=gpt-5.6-luna
+```
+
+The live Research sector uses the OpenAI Responses API with web search. Without `OPENAI_API_KEY`, deterministic financial features still work, but live web research and optional AI reasoning are unavailable.
+
+The configured model is `gpt-5.6-luna`, which supports web search through the Responses API. Always keep the API key on the backend; never put it in browser JavaScript or commit it to source control.
+
+## Production configuration
+
+At minimum set:
+
+```env
+PORT=3000
+OPENAI_API_KEY=...
+SAARTHI_MODEL=gpt-5.6-luna
+SAARTHI_DEMO_MODE=false
+SAARTHI_CORS_ORIGIN=https://your-production-domain.example
+SAARTHI_RATE_LIMIT=120
+SAARTHI_AUTH_SESSION_DAYS=30
+```
+
+For a real deployment, put Saarthi behind HTTPS and a reverse proxy, keep `.env` outside source control, use persistent storage/backups for the SQLite database, and configure the production CORS origin explicitly.
+
+## Research diagnostics
+
+The frontend Research sector checks `/api/research/status` before running a search.
+
+If research fails, the backend now preserves the actual provider error instead of hiding it behind a generic UI failure. The research agent also extracts source URLs from web-search source objects and URL citation annotations and returns deduplicated source cards.
+
+Research answers are intentionally separated from the user's private financial facts. Saarthi is instructed to prefer primary/official sources for financial rules and not invent rates, fees, eligibility, deadlines or product terms.
+
+## Security boundaries
+
+Saarthi does not require or request:
+
+- OTPs
+- PINs
+- CVVs
+- banking passwords
+- full card numbers
+
+Real bank connectivity is represented by a provider boundary and is not falsely presented as an active bank integration.
+
+## Core architecture
+
+```text
+User data
+   ↓
+Canonical Ledger
+   ↓
+Financial Engine
+   ↓
+Investigation Planner / Orchestrator
+   ↓
+Evidence + Verification
+   ↓
+AI reasoning
+   ↓
+Decision Engine / Digital Twin
+   ↓
+Saarthi UI
+
+External knowledge → Research Agent → cited evidence
+Documents → extraction → canonical ledger/provenance
+```
+
+## Verification
+
+Financial calculations are deterministic. The AI is not the source of truth for transaction totals or simulations.
+
+Investigation results can be marked `verified` or `review_required` depending on evidence and verification checks.
+
+Digital Twin simulations never mutate the real ledger.
 
 ## Tests
 
-```bash
-npm test
-npm run check
-```
-
-The tests cover financial totals/sign handling, duplicate detection, parser normalization, and configuration validation.
-
-## Important
-
-Do not copy individual snippets from an older Saarthi version into this project. Treat this folder as the coherent baseline and make future changes against it.
-
-
-## Phase 1 — Canonical Financial Intelligence Engine
-
-The financial data path now uses a canonical ledger rather than calculating directly from raw spreadsheet rows.
-
-```text
-RAW FILE / PASTE
-    ↓
-PARSER
-    ↓
-NORMALIZER
-    ↓
-VALIDATION + QUALITY FLAGS
-    ↓
-CANONICAL LEDGER
-    ↓
-RECONCILIATION
-    ↓
-FINANCIAL METRICS
-    ↓
-AUDIT / INVESTIGATION
-```
-
-Each canonical transaction carries a stable source row, direction, signed amount, absolute amount, currency, category confidence, and quality flags. The API exposes the ledger at `GET /api/ledger`. Existing `/api/analyze`, `/api/investigate`, `/api/chat`, dashboard, and simulation routes continue to consume the canonical ledger.
-
-Run checks with:
+Run:
 
 ```bash
 npm test
 npm run check
 ```
 
-
-## Phase 2 — Investigation Engine + Agent Orchestration
-
-Saarthi now separates an investigation into: intent classification → investigation plan → deterministic evidence collection → verification → AI explanation.
-
-The `/api/investigate` endpoint returns the investigation plan, evidence trail, and verification checks. `/api/chat` uses the same orchestration before asking the AI to explain the result.
-
-AI remains the explanation/reasoning layer; deterministic financial calculations remain in the financial engine.
-
-## Phase 3: Decision Engine + Digital Twin
-
-Saarthi now has a deterministic scenario engine for decision support. Scenarios are hypothetical only and never mutate the canonical ledger.
-
-Supported scenario types:
-- `income_change` — percentage increase/decrease in detected income
-- `expense_change` — percentage increase/decrease in detected expenses
-- `category_reduction` — reduce a detected expense category by a percentage
-
-Endpoints:
-- `POST /api/simulate` — Digital Twin simulation; supports stacked scenarios and keeps legacy category simulation compatibility.
-- `POST /api/decision` — natural-language scenario parsing followed by deterministic simulation.
-
-The agent's `run_what_if` tool now delegates to the same Digital Twin engine, so UI, API and agent calculations use one source of truth.
-
-## Phase 4 — Evidence + Verification
-
-The intelligence layer now maintains a stronger evidence trail for every investigation step.
-
-- Evidence records include status, confidence, timestamp, source and a payload fingerprint.
-- Tool failures are treated as failed evidence rather than successful results.
-- Verification checks cash-flow consistency, latest-period savings consistency and audit structure.
-- Investigations expose an evidence-quality score and a `PASS` / `REVIEW_REQUIRED` decision gate.
-- The agent is instructed to disclose verification limitations and never present failed evidence as verified.
-- Deterministic financial calculations remain outside the language model.
-
-
-## Phase 8 — Production hardening
-
-Phase 8 adds the runtime foundations needed before external financial-data integrations:
-
-- persistent session state under `data/sessions.json` with atomic writes and restrictive file permissions
-- cryptographically random session identifiers instead of the previous shared `default` session
-- request rate limiting
-- security response headers and a restrictive default Content Security Policy
-- configurable CORS, proxy trust, upload size, JSON size, and demo mode
-- upload extension allow-list and single-file limits
-- structured data-source registry separating demo/file-import sources from the future bank-provider adapter boundary
-- explicit adapter boundary for future account/transaction providers; Saarthi does not collect banking passwords, PINs, OTPs or CVVs
-- persistence regression tests
-
-### Production deployment notes
-
-The current bank adapter is intentionally a boundary, not a live banking connector. Before production financial connectivity, add an authenticated identity layer, encrypted provider tokens, provider-specific consent/revocation flows, encrypted database storage, audit logging, secret management, and provider webhooks/reconciliation. The local JSON store is suitable for the current single-process product build, not a horizontally scaled production database.
-
-## Phase 9 — authenticated users, database persistence, provider boundary
-- Added SQLite persistence using Node's built-in `node:sqlite` runtime API (no native npm database dependency).
-- Added account registration/login/logout with scrypt password hashing and opaque bearer sessions whose database values are SHA-256 token hashes.
-- Financial workspace state is now persisted per authenticated user instead of browser-generated session IDs.
-- Added provider registry + connection boundary for future bank/open-banking integrations. Provider adapters receive provider-issued authorization context; Saarthi never accepts banking passwords, PINs, OTPs or CVVs.
-- Added provider connection APIs and regression tests.
-- Demo mode creates a disposable authenticated account rather than using a shared financial session.
-
-### Production provider rule
-A real bank adapter must use the institution/provider's official consent/OAuth flow and a secure token vault/KMS. Do not add login/password/OTP/PIN/CVV fields to Saarthi APIs.
-
-## Phase 9.1 — Language, Rewards, Settings & Research UX
-
-- UI language switching: English, Hindi, Gujarati.
-- Preferences persisted per authenticated user.
-- Interface sound and spoken-response preferences.
-- Share-and-earn rewards ledger (+25 points per share action).
-- Research status endpoint and cited source cards.
-- Live research uses the OpenAI Responses API web search tool when `OPENAI_API_KEY` is configured.
-- `.env` is loaded automatically from the project root even when `npm start` is launched from the parent directory; restart `npm start` after changing it.
-
-### Enable live research
-
-1. Copy `.env.example` to `.env`.
-2. Set `OPENAI_API_KEY=...` in `.env`.
-3. Restart the backend with `npm start`.
-4. Open Research in Saarthi and use a research prompt.
-
-Never place API keys in the browser, HTML, or client-side JavaScript.
+The current build passes the complete automated test and JavaScript syntax-check suites.
