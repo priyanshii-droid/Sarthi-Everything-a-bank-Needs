@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#07111f"><meta name="description" content="Saarthi financial intelligence workspace">
-<title>SAARTHI — Your Money, Clearly</title><link rel="stylesheet" href="style.css">
+<title>SAARTHI — Your Money, Clearly</title><link rel="stylesheet" href="style.css?v=final2">
 </head>
 <body>
 <div id="auth" class="auth-screen">
@@ -14,8 +14,8 @@
     <h1>Know your money.<br><em>Then decide.</em></h1>
     <p>Bring your financial data into one calm, intelligent workspace. Saarthi turns transactions into evidence, decisions and actions.</p>
     <div class="auth-form"><input id="auth-email" type="email" autocomplete="email" placeholder="Email address"><input id="auth-password" type="password" autocomplete="current-password" placeholder="Password · 10+ characters"></div>
-    <div class="auth-actions"><button id="sign-in" class="btn btn-primary">Sign in <span>↗</span></button><button id="sign-up" class="btn btn-secondary">Create account</button></div>
-    <button id="demo-login" class="demo-link">Try Saarthi with a disposable demo account →</button>
+    <div class="auth-actions"><button type="button" id="sign-in" class="btn btn-primary">Sign in <span>↗</span></button><button type="button" id="sign-up" class="btn btn-secondary">Create account</button></div>
+    <button type="button" id="demo-login" class="demo-link">Try Saarthi with a disposable demo account →</button>
     <div id="auth-status" class="auth-status">Private by design · No OTP, PIN, CVV or banking password required.</div>
   </div>
 </div>
@@ -25,40 +25,35 @@
     <div class="brand sidebar-brand"><span class="brand-mark">S</span><div><b>SAARTHI</b><small>Financial intelligence</small></div></div>
     <div class="side-label">WORKSPACE</div>
     <nav>
-      <button class="nav active" data-view="home"><span class="nav-icon">◈</span><span><b>My Money</b><small>See what’s happening</small></span></button>
-      <button class="nav" data-view="investigate"><span class="nav-icon">⌁</span><span><b>Understand</b><small>Why is it happening?</small></span></button>
-      <button class="nav" data-view="decisions"><span class="nav-icon">◐</span><span><b>Decide</b><small>Test before acting</small></span></button>
-      <button class="nav" data-view="data"><span class="nav-icon">＋</span><span><b>Data</b><small>Import & inspect</small></span></button>
-      <button class="nav nav-secondary" data-view="transactions"><span class="nav-icon">≋</span><span><b>Transactions</b><small>Open the canonical ledger</small></span></button>
+      <button type="button" class="nav active" data-view="home"><span class="nav-icon">◈</span><span><b>My Money</b><small>See what’s happening</small></span></button>
+      <button type="button" class="nav" data-view="investigate"><span class="nav-icon">⌁</span><span><b>Understand</b><small>Why is it happening?</small></span></button>
+      <button type="button" class="nav" data-view="decisions"><span class="nav-icon">◐</span><span><b>Decide</b><small>Test before acting</small></span></button>
+      <button type="button" class="nav" data-view="research"><span class="nav-icon">⌕</span><span><b>Research</b><small>Bring in current facts</small></span></button>
+      <button type="button" class="nav" data-view="data"><span class="nav-icon">＋</span><span><b>Data</b><small>Import & inspect</small></span></button>
+      <button type="button" class="nav nav-secondary" data-view="transactions"><span class="nav-icon">≋</span><span><b>Transactions</b><small>Open the canonical ledger</small></span></button>
     </nav>
-    <div class="side-footer"><div class="live"><i></i><span>Intelligence core online</span></div><button id="sound-toggle" class="mini-toggle" title="Toggle interface sounds">Sound <strong>ON</strong></button></div>
+    <div class="side-footer"><div class="live"><i></i><span>Intelligence core online</span></div><button type="button" id="sound-toggle" class="mini-toggle" title="Toggle interface sounds">Sound <strong>ON</strong></button></div>
   </aside>
 
   <main class="main">
     <header class="topbar">
-      <div class="mobile-head"><button id="menu" class="icon-btn">☰</button><span class="mobile-brand">SAARTHI</span></div>
+      <div class="mobile-head"><button type="button" id="menu" class="icon-btn">☰</button><span class="mobile-brand">SAARTHI</span></div>
       <div class="breadcrumb"><span id="view-kicker">MY MONEY</span><strong id="view-title">Your financial cockpit</strong></div>
-      <div class="top-actions"><span id="reward-pill" class="reward-pill">★ 0 pts</span><span id="account-email" class="account-pill">Account</span><span id="data-pill" class="data-pill">No data</span><select id="language-select" class="language-select" aria-label="Language"><option value="en">EN</option><option value="hi">हिंदी</option><option value="gu">ગુજરાતી</option></select><button id="settings-open" class="top-btn">⚙ Settings</button><button id="reset" class="top-btn">Reset</button><button id="logout" class="top-btn">Sign out</button></div>
+      <div class="top-actions"><span id="reward-pill" class="reward-pill">★ 0 pts</span><span id="account-email" class="account-pill">Account</span><span id="data-pill" class="data-pill">No data</span><select id="language-select" class="language-select" aria-label="Language"><option value="en">EN</option><option value="hi">हिंदी</option><option value="gu">ગુજરાતી</option></select><button type="button" id="settings-open" class="top-btn">⚙ Settings</button><button type="button" id="reset" class="top-btn">Reset</button><button type="button" id="logout" class="top-btn">Sign out</button></div>
     </header>
 
     <div class="page">
       <section id="view-home" class="view active">
         <div class="money-hero">
           <div class="hero-copy"><div class="eyebrow">YOUR MONEY · LIVE FROM YOUR DATA</div><h1>Here’s what’s happening<br><span>with your money.</span></h1><p id="hero-sub">Load your data and Saarthi will turn it into a clear financial picture.</p>
-            <div class="hero-actions"><button class="btn btn-light" data-view="transactions">View transactions <span>→</span></button><button class="btn btn-glass" data-view="data">Add data <span>＋</span></button></div>
+            <div class="hero-actions"><button type="button" class="btn btn-light" data-view="transactions">View transactions <span>→</span></button><button type="button" class="btn btn-glass" data-view="data">Add data <span>＋</span></button></div>
           </div>
           <div class="health-orb"><div class="orb-ring"><span id="health">—</span></div><small>FINANCIAL<br>SIGNAL</small><em>Not a credit score</em></div>
         </div>
 
         <div id="metrics" class="metrics"></div>
 
-        <div class="budget-joke">💸 <b>Budget note:</b> “It was only ₹500.” — a sentence with a surprisingly large sequel.</div>
-        <div class="talk-hero">
-          <div class="talk-avatar" aria-hidden="true">🧭</div>
-          <div class="talk-copy"><div class="eyebrow">TALK TO SAARTHI</div><h2>“Tell me what is bothering you about your money.”</h2><p>No spreadsheets to decode. No finance jargon. Ask a question and Saarthi will investigate it.</p></div>
-          <div class="talk-actions"><button class="btn btn-primary" data-focus-talk>Talk to Saarthi <span>↗</span></button><button class="btn btn-secondary" data-view="data">＋ Add data</button></div>
-        </div>
-
+        <div class="budget-joke">💸 <b>Budget tip:</b> “Bas ₹500 hi tha” — Saarthi ne ye line 47 baar sun li hai. 😄</div>
         <div class="journey-strip">
           <div class="journey-step active"><span>01</span><b>SEE</b><small>What is happening?</small></div>
           <div class="journey-line"></div>
@@ -66,7 +61,7 @@
           <div class="journey-line"></div>
           <div class="journey-step"><span>03</span><b>DECIDE</b><small>What should I do?</small></div>
           <div class="journey-line"></div>
-          <div class="journey-step"><span>04</span><b>ACT</b><small>Make the next move</small></div>
+          <div class="journey-step"><span>04</span><b>VERIFY</b><small>Check outside facts</small></div>
         </div>
 
         
@@ -74,37 +69,78 @@
           <div class="guide-avatar" aria-hidden="true">🧭</div>
           <div class="guide-copy">
             <div class="eyebrow">SAARTHI GUIDE</div>
-            <h3>“I will help you find where your money went — without asking it to write an apology letter.”</h3>
-            <p>Start with your data. I will guide you through <b>SEE → UNDERSTAND → DECIDE → ACT</b>.</p>
+            <h3>Main Saarthi hoon — paisa judge nahi karta, bas thoda roast karta hoon 😄</h3>
+            <p>Data add karo, phir main tumhe <b>SEE → UNDERSTAND → DECIDE → ACT</b> flow mein guide karunga.</p>
           </div>
-          <button class="btn btn-primary guide-cta" data-view="data">＋ Add your data</button>
+          <button type="button" class="btn btn-primary guide-cta" data-view="data">＋ Add your data</button>
         </section>
 
         <div class="section-heading journey-heading"><div><div class="eyebrow">START WITH A QUESTION</div><h2>What do you want to understand?</h2></div><span class="heading-note">Saarthi chooses the checks behind the scenes.</span></div>
         <div class="action-grid journey-actions">
-          <button class="action-card featured" data-q="Audit my finances and tell me what deserves attention first."><span class="action-icon">⌁</span><div><b>Find what needs attention</b><p>Audit the ledger, compare periods, find anomalies and show the strongest evidence.</p></div><strong>→</strong></button>
-          <button class="action-card" data-q="Explain where my spending is changing and why."><span class="action-icon">↗</span><div><b>Explain my spending</b><p>Find category shifts, recurring costs and the biggest drivers.</p></div><strong>→</strong></button>
-          <button class="action-card" data-view="decisions"><span class="action-icon">◐</span><div><b>Test a decision</b><p>Model a change before it touches your real ledger.</p></div><strong>→</strong></button>
-          <button class="action-card" data-view="data"><span class="action-icon">＋</span><div><b>Bring in my data</b><p>Upload Excel, CSV, JSON or text and let Saarthi build the financial picture.</p></div><strong>→</strong></button>
+          <button type="button" class="action-card featured" data-q="Audit my finances and tell me what deserves attention first."><span class="action-icon">⌁</span><div><b>What needs attention?</b><p>Audit the ledger, compare periods, find anomalies and show the strongest evidence.</p></div><strong>→</strong></button>
+          <button type="button" class="action-card" data-q="Explain where my spending is changing and why."><span class="action-icon">↗</span><div><b>Why is spending changing?</b><p>Find category shifts, recurring costs and the biggest drivers.</p></div><strong>→</strong></button>
+          <button type="button" class="action-card" data-view="decisions"><span class="action-icon">◐</span><div><b>What should I do?</b><p>Model a change before it touches your real ledger.</p></div><strong>→</strong></button>
+          <button type="button" class="action-card" data-view="research"><span class="action-icon">⌕</span><div><b>What does the outside world say?</b><p>Research current rates, rules, fees and other public facts with sources.</p></div><strong>→</strong></button>
         </div>
 
         <div class="dashboard-grid">
           <article class="panel flow-panel"><div class="panel-head"><div><div class="eyebrow">MONEY FLOW</div><h3>Income → expenses → surplus</h3></div><span id="coverage" class="status-tag">—</span></div><div id="flow" class="flow"></div></article>
-          <article class="panel signals-panel"><div class="panel-head"><div><div class="eyebrow">INTELLIGENCE</div><h3>Signals worth seeing</h3></div><button class="text-btn" data-view="investigate">Deep audit →</button></div><div id="signals" class="signals"></div></article>
+          <article class="panel signals-panel"><div class="panel-head"><div><div class="eyebrow">INTELLIGENCE</div><h3>Signals worth seeing</h3></div><button type="button" class="text-btn" data-view="investigate">Deep audit →</button></div><div id="signals" class="signals"></div></article>
         </div>
 
-        <div class="reward-banner"><div><div class="eyebrow">SAARTHI REWARDS</div><b>Share Saarthi. Earn points.</b><span>Invite someone to build healthier money habits. +25 points per share.</span></div><button id="share-saarthi" class="btn btn-light">Share +25 ★</button></div>
-        <div class="ask-strip"><div class="ask-orb">✦</div><div class="ask-copy"><div class="eyebrow">ASK SAARTHI</div><b>Tell Saarthi what you want to understand.</b><span>Ask in plain language. Saarthi will plan the investigation.</span></div><div class="ask-box"><input id="hero-question" placeholder="Why did my spending increase?"><button id="voice-btn" class="voice-btn" aria-label="Speak to Saarthi">◉</button><button id="hero-ask" class="ask-send">Ask <span>↗</span></button></div></div>
+        <div class="reward-banner"><div><div class="eyebrow">SAARTHI REWARDS</div><b>Share Saarthi. Earn points.</b><span>Invite someone to build healthier money habits. +25 points per share.</span></div><button type="button" id="share-saarthi" class="btn btn-light">Share +25 ★</button></div>
+        <div class="ask-strip"><div class="ask-orb">✦</div><div class="ask-copy"><div class="eyebrow">ASK SAARTHI</div><b>Tell Saarthi what you want to understand.</b><span>Ask in plain language. Saarthi will plan the investigation.</span></div><div class="ask-box"><input id="hero-question" placeholder="Why did my spending increase?"><button type="button" id="voice-btn" class="voice-btn" aria-label="Speak to Saarthi">◉</button><button type="button" id="hero-ask" class="ask-send">Ask <span>↗</span></button></div></div>
         <div id="agent-status" class="agent-status"><i></i><span id="agent-status-text">Ready</span><span id="agent-timer"></span></div>
       </section>
 
-      <section id="view-transactions" class="view"><div class="section-heading"><div><div class="eyebrow">CANONICAL LEDGER</div><h2>Your transactions.</h2><p>Every calculation starts here. Normalized records are the source of truth for Saarthi.</p></div><button class="btn btn-primary" data-view="data">＋ Add data</button></div><div class="panel table-panel"><div class="table-toolbar"><span id="tx-count">0 transactions</span><span>Canonical records · provenance retained</span></div><div class="table-scroll"><table><thead><tr><th>Date</th><th>Merchant</th><th>Category</th><th>Direction</th><th>Amount</th><th>Source</th></tr></thead><tbody id="tx-body"></tbody></table></div><div id="tx-empty" class="empty hidden">No financial data loaded yet.</div></div></section>
+      <section id="view-transactions" class="view"><div class="section-heading"><div><div class="eyebrow">CANONICAL LEDGER</div><h2>Your transactions.</h2><p>Every calculation starts here. Normalized records are the source of truth for Saarthi.</p></div><button type="button" class="btn btn-primary" data-view="data">＋ Add data</button></div><div class="panel table-panel"><div class="table-toolbar"><span id="tx-count">0 transactions</span><span>Canonical records · provenance retained</span></div><div class="table-scroll"><table><thead><tr><th>Date</th><th>Merchant</th><th>Category</th><th>Direction</th><th>Amount</th><th>Source</th></tr></thead><tbody id="tx-body"></tbody></table></div><div id="tx-empty" class="empty hidden">No financial data loaded yet.</div></div></section>
 
-      <section id="view-investigate" class="view"><div class="section-heading"><div><div class="eyebrow">AUDIT & INVESTIGATE</div><h2>Let Saarthi find what matters.</h2><p>One request can trigger multiple deterministic checks before the AI explains the result.</p></div><button id="run-investigation" class="btn btn-primary">Run full audit <span>→</span></button></div><div class="audit-banner"><span>✦</span><div><b>Evidence first.</b><small>Facts, observations, inferences and review-required items stay separated.</small></div></div><div id="investigation" class="investigation-grid"></div><div id="investigation-meta" class="agent-meta"></div></section>
+      <section id="view-investigate" class="view"><div class="section-heading"><div><div class="eyebrow">AUDIT & INVESTIGATE</div><h2>Let Saarthi find what matters.</h2><p>One request can trigger multiple deterministic checks before the AI explains the result.</p></div><button type="button" id="run-investigation" class="btn btn-primary">Run full audit <span>→</span></button></div><div class="audit-banner"><span>✦</span><div><b>Evidence first.</b><small>Facts, observations, inferences and review-required items stay separated.</small></div></div><div id="investigation" class="investigation-grid"></div><div id="investigation-meta" class="agent-meta"></div></section>
 
-      <section id="view-decisions" class="view"><div class="section-heading"><div><div class="eyebrow">COMPARE & DECIDE · DIGITAL TWIN</div><h2>Test the future before you change it.</h2><p>Simulations never mutate your real ledger.</p></div></div><div class="decision-layout"><article class="panel scenario-panel"><div class="eyebrow">YOUR SCENARIO</div><h3>What are you considering?</h3><div class="scenario-input"><input id="scenario" placeholder="Reduce food spending by 20%"><button id="run-decision" class="btn btn-primary">Compare →</button></div><div class="quick-scenarios"><button data-scenario="Increase income by 10000 per month">+ ₹10k income</button><button data-scenario="Reduce Food spending by 20%">− 20% Food</button><button data-scenario="Increase expenses by 5000 per month">+ ₹5k expenses</button></div><div id="decision-result" class="result"></div></article><article class="panel decision-side"><div class="eyebrow">OTHER DECISIONS</div><div class="decision-links"><button data-view="investigate"><span>⌁</span><div><b>Audit before borrowing</b><small>Check cash flow and recurring load</small></div>→</button><button data-view="home"><span>◈</span><div><b>Return to my money</b><small>See the baseline again</small></div>→</button></div></article></div></section><section id="view-data" class="view"><div class="section-heading"><div><div class="eyebrow">MY DATA</div><h2>Put your financial life here.</h2><p>Your data comes first. Saarthi cannot reason reliably about money it cannot see.</p></div></div><div class="data-layout"><article class="panel import-panel"><div class="data-icon">＋</div><div class="eyebrow">LEDGER IMPORT</div><h3>Load your working dataset</h3><p>Excel, CSV, JSON, text — or paste a few rows to get started.</p><label class="file-drop" for="ledger-file"><span class="file-drop-icon">📊</span><span><b>Drop or choose a spreadsheet</b><small>Excel .xlsx / .xls · CSV · JSON · TXT</small></span><em id="file-name">No file selected</em></label><input id="ledger-file" type="file" accept=".xlsx,.xls,.csv,.json,.txt" hidden><textarea id="paste" placeholder="Or paste rows such as: 2026-09-01,Salary,Income,52000"></textarea><input id="problem" placeholder="Optional: what should Saarthi figure out?"><div class="form-actions"><button id="import" class="btn btn-primary">Load my data <span>→</span></button><button id="sample" class="btn btn-secondary">Use demo data</button></div><div id="import-status" class="status-line"></div></article><article class="panel document-panel"><div class="doc-top"><div class="data-icon">▤</div><div><div class="eyebrow">DOCUMENT INTELLIGENCE</div><h3>Inspect a statement</h3></div></div><p>Inspect supported PDFs, statements and financial documents. Provenance is retained for review.</p><input id="doc-file" type="file" accept=".pdf,.xlsx,.xls,.csv,.json,.txt"><button id="inspect" class="btn btn-secondary wide">Inspect document →</button><div id="doc-result" class="result"></div></article></div></section>
+      <section id="view-decisions" class="view"><div class="section-heading"><div><div class="eyebrow">COMPARE & DECIDE · DIGITAL TWIN</div><h2>Test the future before you change it.</h2><p>Simulations never mutate your real ledger.</p></div></div><div class="decision-layout"><article class="panel scenario-panel"><div class="eyebrow">YOUR SCENARIO</div><h3>What are you considering?</h3><div class="scenario-input"><input id="scenario" placeholder="Reduce food spending by 20%"><button type="button" id="run-decision" class="btn btn-primary">Compare →</button></div><div class="quick-scenarios"><button type="button" data-scenario="Increase income by 10000 per month">+ ₹10k income</button><button type="button" data-scenario="Reduce Food spending by 20%">− 20% Food</button><button type="button" data-scenario="Increase expenses by 5000 per month">+ ₹5k expenses</button></div><div id="decision-result" class="result"></div></article><article class="panel decision-side"><div class="eyebrow">OTHER DECISIONS</div><div class="decision-links"><button type="button" data-view="research"><span>⌕</span><div><b>Research a loan</b><small>Rates · fees · rules · eligibility</small></div>→</button><button type="button" data-view="investigate"><span>⌁</span><div><b>Audit before borrowing</b><small>Check cash flow and recurring load</small></div>→</button><button type="button" data-view="home"><span>◈</span><div><b>Return to my money</b><small>See the baseline again</small></div>→</button></div></article></div></section>
+
+      <section id="view-research" class="view">
+        <div class="section-heading">
+          <div><div class="eyebrow">VERIFY · RESEARCH INTELLIGENCE</div><h2>Bring current facts into the decision.</h2><p>Saarthi keeps public web evidence separate from your private financial ledger.</p></div>
+          <button type="button" class="btn btn-secondary" data-view="decisions">Back to decision →</button>
+        </div>
+        <div class="research-layout">
+          <article class="panel research-panel">
+            <div class="research-intro"><span class="research-orb">⌕</span><div><b>Ask a current-world question.</b><small>Rates, rules, fees, eligibility, deadlines, products and other public information.</small></div></div>
+            <div class="research-box"><input id="research-query" placeholder="e.g. Compare current home-loan rates and major fees in India"><button type="button" id="run-research" class="btn btn-primary">Research <span>↗</span></button></div>
+            <div id="research-status" class="research-status">Checking live research…</div>
+            <div class="research-hints"><button type="button" data-research="Compare current home loan rates in India">Home loan rates</button><button type="button" data-research="What are the current RBI rules for personal loans?">RBI rules</button><button type="button" data-research="What fees should I check before taking a loan?">Loan fees</button></div>
+            <div id="research-result" class="result"></div>
+          </article>
+          <aside class="panel research-guide">
+            <div class="eyebrow">RESEARCH CONTRACT</div>
+            <h3>What Saarthi will do</h3>
+            <div class="research-check"><b>01</b><span>Search current public sources</span></div>
+            <div class="research-check"><b>02</b><span>Prefer official and primary sources</span></div>
+            <div class="research-check"><b>03</b><span>Separate facts from interpretation</span></div>
+            <div class="research-check"><b>04</b><span>Show the sources used</span></div>
+            <p class="research-warning">Research is not a substitute for a lender, regulator or professional. Verify important rates, fees and deadlines against the cited source before acting.</p>
+          </aside>
+        </div>
+      </section>
+
+      
+      <section class="onboarding-flow">
+        <div class="flow-title"><div class="eyebrow">YOUR SAARTHI FLOW</div><h2>Bas data do. Baaki dimag Saarthi ka. 🧠</h2></div>
+        <div class="flow-track">
+          <div class="flow-node active"><span>1</span><b>ADD DATA</b><small>Excel · CSV · statement</small></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node"><span>2</span><b>UNDERSTAND</b><small>Patterns · changes · leaks</small></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node"><span>3</span><b>DECIDE</b><small>What-if simulations</small></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node"><span>4</span><b>ACT</b><small>Clear next steps</small></div>
+        </div>
+      </section>
+
+<section id="view-data" class="view"><div class="section-heading"><div><div class="eyebrow">MY DATA</div><h2>Put your financial life here.</h2><p>Your data comes first. Saarthi cannot reason reliably about money it cannot see.</p></div></div><div class="data-layout"><article class="panel import-panel"><div class="data-icon">＋</div><div class="eyebrow">LEDGER IMPORT</div><h3>Load your working dataset</h3><p>Excel, CSV, JSON, text — or paste a few rows to get started.</p><input id="ledger-file" type="file" accept=".xlsx,.xls,.csv,.json,.txt"><textarea id="paste" placeholder="Or paste rows such as: 2026-09-01,Salary,Income,52000"></textarea><input id="problem" placeholder="Optional: what should Saarthi figure out?"><div class="form-actions"><button type="button" id="import" class="btn btn-primary">Load my data <span>→</span></button><button type="button" id="sample" class="btn btn-secondary">Use demo data</button></div><div id="import-status" class="status-line"></div></article><article class="panel document-panel"><div class="doc-top"><div class="data-icon">▤</div><div><div class="eyebrow">DOCUMENT INTELLIGENCE</div><h3>Inspect a statement</h3></div></div><p>Inspect supported PDFs, statements and financial documents. Provenance is retained for review.</p><input id="doc-file" type="file" accept=".pdf,.xlsx,.xls,.csv,.json,.txt"><button type="button" id="inspect" class="btn btn-secondary wide">Inspect document →</button><div id="doc-result" class="result"></div></article></div></section>
     </div>
   </main>
 </div>
-<script src="app.js"></script>
+<script src="app.js?v=final2"></script>
 </body></html>

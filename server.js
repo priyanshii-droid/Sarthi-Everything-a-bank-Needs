@@ -17,6 +17,7 @@ const logger = require('./shared/logger');
 const { money, auditTransactions, analyze, investigateFinances, normalizeRows } = require('./core/financial-engine');
 const { parseWorkbook, parseCsvText, parseJsonText, parsePlainText } = require('./core/parser');
 const { simulateScenarios, parseScenarioText } = require('./core/decision-engine');
+const { researchPublicInformation } = require('./research/research-agent');
 const { parseDocument, documentProvenance } = require('./documents/document-parser');
 const { extractFinancialFacts } = require('./documents/extraction');
 
@@ -163,7 +164,29 @@ app.post('/api/reset',(req,res)=>{const state=getState(req,res);reset(state);sav
 app.get('/api/dashboard',(req,res)=>{const state=getState(req,res);const a=analyze(state.transactions,state.problem);res.json({balance:null,...a,recentTransactions:state.transactions.slice(0,8),hasData:state.transactions.length>0});});
 
 // Phase 5: research + document intelligence
+app.get('/api/research/status',(req,res)=>res.json({
+  ok:true,
+  configured:Boolean(config.openAIKey),
+  model:config.model,
+  keyPresent:Boolean(config.openAIKey),
+  capabilities:['web_search','source_citations','primary_source_preference'],
+  restartRequired:true
+}));
 
+app.post('/api/research', async (req,res) => {
+  const query=String(req.body?.query||'').trim();
+  if(!query) return res.status(400).json({ok:false,error:'Tell Saarthi what you want researched.'});
+  try {
+    const result=await researchPublicInformation({
+      query,
+      apiKey:config.openAIKey,
+      model:config.model,
+      language:String(req.body?.language||'en')
+    });
+    if(!result.ok) return res.status(503).json(result);
+    res.json(result);
+  } catch(e){res.status(502).json({ok:false,error:`Web research failed: ${e.message}`});}
+});
 
 
 app.get('/api/preferences',bearerAuth,(req,res)=>res.json({ok:true,preferences:db.getPreferences(req.user.id)}));
@@ -202,5 +225,5 @@ app.use((err, req, res, next) => {
 });
 
 
-if (require.main === module) app.listen(PORT,'0.0.0.0',()=>logger.info('server_started',{port:PORT,model:config.model,aiConfigured:Boolean(config.openAIKey)}));
+if (require.main === module) app.listen(PORT,HOST,()=>logger.info('server_started',{port:PORT,model:config.model,aiConfigured:Boolean(config.openAIKey)}));
 module.exports = { app, sessions, getState, setLedger };

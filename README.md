@@ -155,13 +155,21 @@ The current bank adapter is intentionally a boundary, not a live banking connect
 ### Production provider rule
 A real bank adapter must use the institution/provider's official consent/OAuth flow and a secure token vault/KMS. Do not add login/password/OTP/PIN/CVV fields to Saarthi APIs.
 
-## Phase 9.1 — Language, Rewards & Settings
+## Phase 9.1 — Language, Rewards, Settings & Research UX
 
-- English, Hindi and Gujarati preferences are persisted per account.
-- Interface sound and spoken Saarthi replies can be controlled in Settings.
-- Rewards are persisted per account.
+- UI language switching: English, Hindi, Gujarati.
+- Preferences persisted per authenticated user.
+- Interface sound and spoken-response preferences.
+- Share-and-earn rewards ledger (+25 points per share action).
+- Research status endpoint and cited source cards.
+- Live research uses the OpenAI Responses API web search tool when `OPENAI_API_KEY` is configured.
+- `.env` is loaded automatically from the project root even when `npm start` is launched from the parent directory; restart `npm start` after changing it.
 
+### Enable live research
 
-## Hackathon judge build
+1. Copy `.env.example` to `.env`.
+2. Set `OPENAI_API_KEY=...` in `.env`.
+3. Restart the backend with `npm start`.
+4. Open Research in Saarthi and use a research prompt.
 
-The judge-facing product focuses on the core Saarthi journey: **Add Data → See → Understand → Decide → Act**. External web Research is intentionally excluded from the judge UI so the financial intelligence experience does not depend on an external research key.
+Never place API keys in the browser, HTML, or client-side JavaScript.
