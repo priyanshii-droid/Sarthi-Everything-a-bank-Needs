@@ -17,7 +17,6 @@ const logger = require('./shared/logger');
 const { money, auditTransactions, analyze, investigateFinances, normalizeRows } = require('./core/financial-engine');
 const { parseWorkbook, parseCsvText, parseJsonText, parsePlainText } = require('./core/parser');
 const { simulateScenarios, parseScenarioText } = require('./core/decision-engine');
-const { researchPublicInformation } = require('./research/research-agent');
 const { parseDocument, documentProvenance } = require('./documents/document-parser');
 const { extractFinancialFacts } = require('./documents/extraction');
 
@@ -203,5 +202,5 @@ app.use((err, req, res, next) => {
 });
 
 
-if (require.main === module) app.listen(PORT,()=>logger.info('server_started',{port:PORT,model:config.model,aiConfigured:Boolean(config.openAIKey)}));
+if (require.main === module) app.listen(PORT,'0.0.0.0',()=>logger.info('server_started',{port:PORT,model:config.model,aiConfigured:Boolean(config.openAIKey)}));
 module.exports = { app, sessions, getState, setLedger };

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: saarthi-hackathon
+    runtime: node
+    plan: free
+    buildCommand: npm ci --no-audit --no-fund
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: SAARTHI_DEMO_MODE
+        value: "true"

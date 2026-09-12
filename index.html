@@ -52,13 +52,21 @@
 
         <div id="metrics" class="metrics"></div>
 
-        <div class="budget-joke">💸 <b>Budget tip:</b> “Bas ₹500 hi tha” — Saarthi ne ye line 47 baar sun li hai. 😄</div>
+        <div class="budget-joke">💸 <b>Budget note:</b> “It was only ₹500.” — a sentence with a surprisingly large sequel.</div>
+        <div class="talk-hero">
+          <div class="talk-avatar" aria-hidden="true">🧭</div>
+          <div class="talk-copy"><div class="eyebrow">TALK TO SAARTHI</div><h2>“Tell me what is bothering you about your money.”</h2><p>No spreadsheets to decode. No finance jargon. Ask a question and Saarthi will investigate it.</p></div>
+          <div class="talk-actions"><button class="btn btn-primary" data-focus-talk>Talk to Saarthi <span>↗</span></button><button class="btn btn-secondary" data-view="data">＋ Add data</button></div>
+        </div>
+
         <div class="journey-strip">
           <div class="journey-step active"><span>01</span><b>SEE</b><small>What is happening?</small></div>
           <div class="journey-line"></div>
           <div class="journey-step"><span>02</span><b>UNDERSTAND</b><small>Why is it happening?</small></div>
           <div class="journey-line"></div>
           <div class="journey-step"><span>03</span><b>DECIDE</b><small>What should I do?</small></div>
+          <div class="journey-line"></div>
+          <div class="journey-step"><span>04</span><b>ACT</b><small>Make the next move</small></div>
         </div>
 
         
@@ -66,17 +74,18 @@
           <div class="guide-avatar" aria-hidden="true">🧭</div>
           <div class="guide-copy">
             <div class="eyebrow">SAARTHI GUIDE</div>
-            <h3>Main Saarthi hoon — paisa judge nahi karta, bas thoda roast karta hoon 😄</h3>
-            <p>Data add karo, phir main tumhe <b>SEE → UNDERSTAND → DECIDE → ACT</b> flow mein guide karunga.</p>
+            <h3>“I will help you find where your money went — without asking it to write an apology letter.”</h3>
+            <p>Start with your data. I will guide you through <b>SEE → UNDERSTAND → DECIDE → ACT</b>.</p>
           </div>
           <button class="btn btn-primary guide-cta" data-view="data">＋ Add your data</button>
         </section>
 
         <div class="section-heading journey-heading"><div><div class="eyebrow">START WITH A QUESTION</div><h2>What do you want to understand?</h2></div><span class="heading-note">Saarthi chooses the checks behind the scenes.</span></div>
         <div class="action-grid journey-actions">
-          <button class="action-card featured" data-q="Audit my finances and tell me what deserves attention first."><span class="action-icon">⌁</span><div><b>What needs attention?</b><p>Audit the ledger, compare periods, find anomalies and show the strongest evidence.</p></div><strong>→</strong></button>
-          <button class="action-card" data-q="Explain where my spending is changing and why."><span class="action-icon">↗</span><div><b>Why is spending changing?</b><p>Find category shifts, recurring costs and the biggest drivers.</p></div><strong>→</strong></button>
-          <button class="action-card" data-view="decisions"><span class="action-icon">◐</span><div><b>What should I do?</b><p>Model a change before it touches your real ledger.</p></div><strong>→</strong></button>
+          <button class="action-card featured" data-q="Audit my finances and tell me what deserves attention first."><span class="action-icon">⌁</span><div><b>Find what needs attention</b><p>Audit the ledger, compare periods, find anomalies and show the strongest evidence.</p></div><strong>→</strong></button>
+          <button class="action-card" data-q="Explain where my spending is changing and why."><span class="action-icon">↗</span><div><b>Explain my spending</b><p>Find category shifts, recurring costs and the biggest drivers.</p></div><strong>→</strong></button>
+          <button class="action-card" data-view="decisions"><span class="action-icon">◐</span><div><b>Test a decision</b><p>Model a change before it touches your real ledger.</p></div><strong>→</strong></button>
+          <button class="action-card" data-view="data"><span class="action-icon">＋</span><div><b>Bring in my data</b><p>Upload Excel, CSV, JSON or text and let Saarthi build the financial picture.</p></div><strong>→</strong></button>
         </div>
 
         <div class="dashboard-grid">
@@ -93,7 +102,7 @@
 
       <section id="view-investigate" class="view"><div class="section-heading"><div><div class="eyebrow">AUDIT & INVESTIGATE</div><h2>Let Saarthi find what matters.</h2><p>One request can trigger multiple deterministic checks before the AI explains the result.</p></div><button id="run-investigation" class="btn btn-primary">Run full audit <span>→</span></button></div><div class="audit-banner"><span>✦</span><div><b>Evidence first.</b><small>Facts, observations, inferences and review-required items stay separated.</small></div></div><div id="investigation" class="investigation-grid"></div><div id="investigation-meta" class="agent-meta"></div></section>
 
-      <section id="view-decisions" class="view"><div class="section-heading"><div><div class="eyebrow">COMPARE & DECIDE · DIGITAL TWIN</div><h2>Test the future before you change it.</h2><p>Simulations never mutate your real ledger.</p></div></div><div class="decision-layout"><article class="panel scenario-panel"><div class="eyebrow">YOUR SCENARIO</div><h3>What are you considering?</h3><div class="scenario-input"><input id="scenario" placeholder="Reduce food spending by 20%"><button id="run-decision" class="btn btn-primary">Compare →</button></div><div class="quick-scenarios"><button data-scenario="Increase income by 10000 per month">+ ₹10k income</button><button data-scenario="Reduce Food spending by 20%">− 20% Food</button><button data-scenario="Increase expenses by 5000 per month">+ ₹5k expenses</button></div><div id="decision-result" class="result"></div></article><article class="panel decision-side"><div class="eyebrow">OTHER DECISIONS</div><div class="decision-links"><button data-view="research"><span>⌕</span><div><b>Research a loan</b><small>Rates · fees · rules · eligibility</small></div>→</button><button data-view="investigate"><span>⌁</span><div><b>Audit before borrowing</b><small>Check cash flow and recurring load</small></div>→</button><button data-view="home"><span>◈</span><div><b>Return to my money</b><small>See the baseline again</small></div>→</button></div></article></div></section><section id="view-data" class="view"><div class="section-heading"><div><div class="eyebrow">MY DATA</div><h2>Put your financial life here.</h2><p>Your data comes first. Saarthi cannot reason reliably about money it cannot see.</p></div></div><div class="data-layout"><article class="panel import-panel"><div class="data-icon">＋</div><div class="eyebrow">LEDGER IMPORT</div><h3>Load your working dataset</h3><p>Excel, CSV, JSON, text — or paste a few rows to get started.</p><input id="ledger-file" type="file" accept=".xlsx,.xls,.csv,.json,.txt"><textarea id="paste" placeholder="Or paste rows such as: 2026-09-01,Salary,Income,52000"></textarea><input id="problem" placeholder="Optional: what should Saarthi figure out?"><div class="form-actions"><button id="import" class="btn btn-primary">Load my data <span>→</span></button><button id="sample" class="btn btn-secondary">Use demo data</button></div><div id="import-status" class="status-line"></div></article><article class="panel document-panel"><div class="doc-top"><div class="data-icon">▤</div><div><div class="eyebrow">DOCUMENT INTELLIGENCE</div><h3>Inspect a statement</h3></div></div><p>Inspect supported PDFs, statements and financial documents. Provenance is retained for review.</p><input id="doc-file" type="file" accept=".pdf,.xlsx,.xls,.csv,.json,.txt"><button id="inspect" class="btn btn-secondary wide">Inspect document →</button><div id="doc-result" class="result"></div></article></div></section>
+      <section id="view-decisions" class="view"><div class="section-heading"><div><div class="eyebrow">COMPARE & DECIDE · DIGITAL TWIN</div><h2>Test the future before you change it.</h2><p>Simulations never mutate your real ledger.</p></div></div><div class="decision-layout"><article class="panel scenario-panel"><div class="eyebrow">YOUR SCENARIO</div><h3>What are you considering?</h3><div class="scenario-input"><input id="scenario" placeholder="Reduce food spending by 20%"><button id="run-decision" class="btn btn-primary">Compare →</button></div><div class="quick-scenarios"><button data-scenario="Increase income by 10000 per month">+ ₹10k income</button><button data-scenario="Reduce Food spending by 20%">− 20% Food</button><button data-scenario="Increase expenses by 5000 per month">+ ₹5k expenses</button></div><div id="decision-result" class="result"></div></article><article class="panel decision-side"><div class="eyebrow">OTHER DECISIONS</div><div class="decision-links"><button data-view="investigate"><span>⌁</span><div><b>Audit before borrowing</b><small>Check cash flow and recurring load</small></div>→</button><button data-view="home"><span>◈</span><div><b>Return to my money</b><small>See the baseline again</small></div>→</button></div></article></div></section><section id="view-data" class="view"><div class="section-heading"><div><div class="eyebrow">MY DATA</div><h2>Put your financial life here.</h2><p>Your data comes first. Saarthi cannot reason reliably about money it cannot see.</p></div></div><div class="data-layout"><article class="panel import-panel"><div class="data-icon">＋</div><div class="eyebrow">LEDGER IMPORT</div><h3>Load your working dataset</h3><p>Excel, CSV, JSON, text — or paste a few rows to get started.</p><label class="file-drop" for="ledger-file"><span class="file-drop-icon">📊</span><span><b>Drop or choose a spreadsheet</b><small>Excel .xlsx / .xls · CSV · JSON · TXT</small></span><em id="file-name">No file selected</em></label><input id="ledger-file" type="file" accept=".xlsx,.xls,.csv,.json,.txt" hidden><textarea id="paste" placeholder="Or paste rows such as: 2026-09-01,Salary,Income,52000"></textarea><input id="problem" placeholder="Optional: what should Saarthi figure out?"><div class="form-actions"><button id="import" class="btn btn-primary">Load my data <span>→</span></button><button id="sample" class="btn btn-secondary">Use demo data</button></div><div id="import-status" class="status-line"></div></article><article class="panel document-panel"><div class="doc-top"><div class="data-icon">▤</div><div><div class="eyebrow">DOCUMENT INTELLIGENCE</div><h3>Inspect a statement</h3></div></div><p>Inspect supported PDFs, statements and financial documents. Provenance is retained for review.</p><input id="doc-file" type="file" accept=".pdf,.xlsx,.xls,.csv,.json,.txt"><button id="inspect" class="btn btn-secondary wide">Inspect document →</button><div id="doc-result" class="result"></div></article></div></section>
     </div>
   </main>
 </div>
