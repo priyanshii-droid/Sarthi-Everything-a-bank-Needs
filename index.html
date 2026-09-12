@@ -85,5 +85,18 @@
     </div>
   </main>
 </div>
-<script src="app.js"></script>
+<div id="settings-modal" class="modal hidden" aria-hidden="true">
+  <div class="modal-backdrop" data-close-settings></div>
+  <section class="settings-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <button id="settings-close" class="modal-close" aria-label="Close settings">×</button>
+    <div class="eyebrow">SAARTHI</div><h2 id="settings-title">Settings</h2>
+    <p>Make Saarthi yours.</p>
+    <label>Language<select id="settings-language"><option value="en">English</option><option value="hi">हिंदी</option><option value="gu">ગુજરાતી</option></select></label>
+    <label class="switch-row"><span>Interface sounds</span><input id="settings-sound" type="checkbox"></label>
+    <label class="switch-row"><span>Speak Saarthi replies</span><input id="settings-tts" type="checkbox"></label>
+    <div class="settings-reward"><span>★</span><div><b>Your rewards</b><small id="settings-points">0 points · 0 shares</small></div></div>
+    <button id="settings-save" class="btn btn-primary wide">Save settings</button>
+  </section>
+</div>
+<script src="app.js?v=9.2.0"></script>
 </body></html>

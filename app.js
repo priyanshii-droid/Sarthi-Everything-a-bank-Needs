@@ -57,13 +57,14 @@ const I18N={
 };
 function t(text){const raw=String(text??'');return I18N[LANG]?.[raw]||raw}
 function translatePage(){
-  document.documentElement.lang=LANG==='hi'?'hi':LANG==='gu'?'gu':'en';
+  try { document.documentElement.lang=LANG==='hi'?'hi':LANG==='gu'?'gu':'en';
   const root=document.body;
   const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
   const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
-  nodes.forEach(n=>{if(!n.parentElement || ['SCRIPT','STYLE'].includes(n.parentElement.tagName))return; const base=n.dataset.i18nOriginal??n.nodeValue.trim(); if(!base)return; n.dataset.i18nOriginal=base; const lead=n.nodeValue.match(/^\s*/)?.[0]||'',tail=n.nodeValue.match(/\s*$/)?.[0]||''; n.nodeValue=lead+t(base)+tail});
+  nodes.forEach(n=>{if(!n.parentElement || ['SCRIPT','STYLE'].includes(n.parentElement.tagName))return; const base=n.__i18nOriginal??n.nodeValue.trim(); if(!base)return; n.__i18nOriginal=base; const lead=n.nodeValue.match(/^\s*/)?.[0]||'',tail=n.nodeValue.match(/\s*$/)?.[0]||''; n.nodeValue=lead+t(base)+tail});
   root.querySelectorAll('input,textarea').forEach(el=>{const base=el.dataset.i18nPlaceholder??el.placeholder;if(base){el.dataset.i18nPlaceholder=base;el.placeholder=t(base)}});
   if($('language-select')) $('language-select').value=LANG; if($('settings-language')) $('settings-language').value=LANG;
+  } catch (e) { console.warn('Saarthi translation skipped:', e); }
 }
 async function savePrefs(p){try{await api('/api/preferences',{method:'POST',body:JSON.stringify(p)})}catch{}}
 async function loadPrefs(){try{const r=await api('/api/preferences');const p=r.preferences||{};if(p.language){LANG=p.language;localStorage.setItem(LANG_KEY,LANG)}if(typeof p.sound==='boolean')localStorage.setItem('saarthi_sound',p.sound?'1':'0');if(typeof p.tts==='boolean')localStorage.setItem('saarthi_tts',p.tts?'1':'0')}catch{}translatePage();updateSoundUI();await loadRewards()}
@@ -76,8 +77,8 @@ const originalAsk=ask;
 ask=async function(q){if(!q)return;return originalAsk(q)};
 const originalResearch=research;
 research=async function(){const q=$('research-query').value.trim();if(!q)return;$('research-result').innerHTML=`<div class="result-box">${esc(t('Researching current sources…'))}</div>`;try{const r=await api('/api/research',{method:'POST',body:JSON.stringify({query:q,language:LANG})});const sources=(r.sources||[]).filter(x=>x.url);const sourceHtml=sources.length?`<div class="research-sources">${sources.slice(0,8).map(x=>`<div class="research-source"><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title||x.url)}</a><small>source</small></div>`).join('')}</div>`:'';$('research-result').innerHTML=`<div class="result-box"><b>${esc(t('Research result'))}</b><p>${esc(r.answer||'').replace(/\n/g,'<br>')}</p><small>${r.retrievedAt?'Retrieved '+esc(r.retrievedAt):'Public-source research'}</small>${sourceHtml}</div>`;ping('success')}catch(e){ping('error');const msg=e.message.includes('OPENAI_API_KEY')?t('Live web research is not configured.')+' '+t('Add OPENAI_API_KEY to the backend .env file and restart npm start.'):e.message;$('research-result').innerHTML=`<div class="result-box"><b>${esc(t('Research unavailable'))}</b><p>${esc(msg)}</p><p><small>Research is designed to use live web search with cited sources when the backend API key is configured.</small></p></div>`}}
-function openSettings(){const m=$('settings-modal');m.classList.remove('hidden');$('settings-language').value=LANG;updateSoundUI();loadRewards();ping('open')}
-function closeSettings(){ $('settings-modal').classList.add('hidden') }
+function openSettings(){const m=$('settings-modal');if(!m)return;m.classList.remove('hidden');m.setAttribute('aria-hidden','false');$('settings-language').value=LANG;updateSoundUI();loadRewards();ping('open')}
+function closeSettings(){const m=$('settings-modal');if(!m)return;m.classList.add('hidden');m.setAttribute('aria-hidden','true')}
 async function saveSettings(){LANG=$('settings-language').value;localStorage.setItem(LANG_KEY,LANG);const sound=$('settings-sound').checked,tts=$('settings-tts').checked;localStorage.setItem('saarthi_sound',sound?'1':'0');localStorage.setItem('saarthi_tts',tts?'1':'0');await savePrefs({language:LANG,sound,tts});translatePage();updateSoundUI();closeSettings();showResearchStatus();ping('success')}
 const oldShow=show; show=function(view){oldShow(view);translatePage()};
 const oldRender=render; render=function(a){oldRender(a);translatePage()};
