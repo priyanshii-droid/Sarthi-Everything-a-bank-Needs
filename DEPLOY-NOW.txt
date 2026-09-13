@@ -1,0 +1,8 @@
+RENDER QUICK DEPLOY
+1. Upload/push the contents of this folder to GitHub.
+2. Render -> New Web Service -> select repo.
+3. Build: npm ci
+4. Start: npm start
+5. Health: /api/health
+6. After changing code: Manual Deploy -> Clear build cache & deploy.
+7. Open public URL and hard refresh.

@@ -1,5 +1,4 @@
 {
-  "engines": {"node": ">=22"},
   "scripts": {
     "start": "node server.js",
     "test": "node tests/financial-engine.test.js && node tests/parser.test.js && node tests/config.test.js && node tests/orchestrator.test.js && node tests/decision-engine.test.js && node tests/research-document.test.js && node tests/security-persistence.test.js && node tests/auth-provider.test.js",

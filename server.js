@@ -23,7 +23,7 @@ const { extractFinancialFacts } = require('./documents/extraction');
 
 const config = getConfig();
 const app = express();
-const PORT = config.port;
+const PORT = process.env.PORT || config.port || 3000;
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.maxUploadBytes, files:1 }, fileFilter: (req,file,cb) => { const ext=path.extname(file.originalname||'').toLowerCase(); const allowed=['.xlsx','.xls','.csv','.json','.txt','.pdf','.tsv']; cb(null,allowed.includes(ext)); } });
 app.set('trust proxy', config.trustProxy ? 1 : false);
 app.use(requestIdMiddleware);
@@ -31,7 +31,13 @@ app.use(securityHeaders);
 app.use(createRateLimiter({ windowMs: 60_000, max: config.rateLimitPerMinute }));
 app.use(cors({ origin: config.corsOrigin, methods:['GET','POST'], allowedHeaders:['Content-Type','Authorization','X-Request-ID','X-Saarthi-Session'], exposedHeaders:['X-Request-ID','X-Saarthi-Session'] }));
 app.use(express.json({ limit: config.maxJsonBytes }));
-app.use(express.static(__dirname));
+app.use(express.static(__dirname, {
+  etag: false,
+  maxAge: 0,
+  setHeaders: (res, filePath) => {
+    if (/\.(html|js|css)$/.test(filePath)) res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
+  }
+}));
 
 const sessions = new Map();
 const bearerAuth = authMiddleware(db, {allowDemo: config.demoMode});
@@ -86,7 +92,7 @@ app.get('/api/ledger',(req,res)=>{const state=getState(req,res);res.json({ok:tru
 app.get('/api/provider-connections',(req,res)=>res.json({ok:true,connections:db.listConnections(req.user.id)}));
 app.post('/api/provider-connections',(req,res)=>{const provider=getProvider(req.body?.providerId);if(!provider)return res.status(404).json({ok:false,error:{code:'PROVIDER_NOT_FOUND',message:'Provider adapter is not available.',requestId:req.requestId}});if(!req.body?.externalAccountRef)return res.status(400).json({ok:false,error:{code:'EXTERNAL_REF_REQUIRED',message:'Provider connection reference is required.',requestId:req.requestId}});const connection=db.upsertConnection({id:`conn_${require('crypto').randomBytes(12).toString('hex')}`,userId:req.user.id,providerId:provider.id,externalAccountRef:String(req.body.externalAccountRef),status:'connected',metadata:{scopes:req.body.scopes||[],consentAt:new Date().toISOString()}});res.status(201).json({ok:true,connection});});
 app.delete('/api/provider-connections/:id',(req,res)=>{db.disconnectConnection(req.user.id,req.params.id);res.json({ok:true});});
-app.get('/api/health',(req,res)=>res.json({ok:true,service:'SAARTHI',mode:'user-data-intelligence',requestId:req.requestId,checks:{database:'ok',ai:config.openAIKey?'configured':'not_configured',research:config.openAIKey?'configured':'not_configured'},model:config.model}));
+app.get('/api/health',(req,res)=>res.json({ok:true,service:'SAARTHI',mode:'user-data-intelligence',requestId:req.requestId}));
 app.get('/api/state',(req,res)=>{const state=getState(req,res);const a=analyze(state.transactions,state.problem);res.json({hasData:state.ledger.length>0,problem:state.problem,source:state.source,filename:state.filename,context:state.context,analytics:a,transactions:state.ledger.slice(0,100),validation:state.validation,reconciliation:state.reconciliation});});
 app.post('/api/load-sample',(req,res)=>{const state=getState(req,res);setLedger(state, normalizeRows(demoRawTransactions,{sourceId:'sample'}));state.problem=req.body?.problem||'Help me understand my spending and find a realistic way to save more.';state.source='sample';state.filename='Saarthi example dataset';state.context=contextFrom(state.transactions,state.problem,state.source,state.filename);saveState(req.__saarthiSessionId || req.headers['x-saarthi-session'] || 'default',state); res.json({ok:true,analytics:analyze(state.transactions,state.problem),context:state.context});});
 app.post('/api/import',upload.single('file'),(req,res)=>{
@@ -164,7 +170,7 @@ app.post('/api/reset',(req,res)=>{const state=getState(req,res);reset(state);sav
 app.get('/api/dashboard',(req,res)=>{const state=getState(req,res);const a=analyze(state.transactions,state.problem);res.json({balance:null,...a,recentTransactions:state.transactions.slice(0,8),hasData:state.transactions.length>0});});
 
 // Phase 5: research + document intelligence
-app.get('/api/research/status',(req,res)=>res.json({ok:true,configured:Boolean(config.openAIKey),provider:'OpenAI Responses API',model:config.model,capabilities:['web_search','source_citations','primary_source_preference']}));
+app.get('/api/research/status',(req,res)=>res.json({ok:true,configured:Boolean(config.openAIKey),model:config.model,capabilities:['web_search','source_citations','primary_source_preference']}));
 
 app.post('/api/research', async (req,res) => {
   const query=String(req.body?.query||'').trim();
@@ -213,5 +219,5 @@ app.use((err, req, res, next) => {
 });
 
 
-if (require.main === module) app.listen(PORT,()=>logger.info('server_started',{port:PORT,model:config.model,aiConfigured:Boolean(config.openAIKey)}));
+if (require.main === module) app.listen(PORT, '0.0.0.0',()=>logger.info('server_started',{port:PORT,model:config.model,aiConfigured:Boolean(config.openAIKey)}));
 module.exports = { app, sessions, getState, setLedger };
