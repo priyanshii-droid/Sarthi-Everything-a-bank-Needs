@@ -173,3 +173,9 @@ A real bank adapter must use the institution/provider's official consent/OAuth f
 4. Open Research in Saarthi and use a research prompt.
 
 Never place API keys in the browser, HTML, or client-side JavaScript.
+
+## Frontend navigation update
+
+The existing backend is retained. The homepage now exposes the Saarthi capabilities in a one-glance CSS Grid launcher. Each tile opens `feature.html?feature=...`, a dedicated workspace that reuses the existing API endpoints and session state. Browser back/forward controls are available as navigation undo/redo controls.
+
+The new feature workspaces are intentionally frontend-only except for calls to already-existing endpoints such as `/api/dashboard`, `/api/investigate`, `/api/decision`, `/api/chat`, and `/api/brief`.

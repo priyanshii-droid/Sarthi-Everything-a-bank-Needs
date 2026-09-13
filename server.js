@@ -23,7 +23,7 @@ const { extractFinancialFacts } = require('./documents/extraction');
 
 const config = getConfig();
 const app = express();
-const PORT = config.port;
+const PORT = process.env.PORT || config.port || 3000;
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.maxUploadBytes, files:1 }, fileFilter: (req,file,cb) => { const ext=path.extname(file.originalname||'').toLowerCase(); const allowed=['.xlsx','.xls','.csv','.json','.txt','.pdf','.tsv']; cb(null,allowed.includes(ext)); } });
 app.set('trust proxy', config.trustProxy ? 1 : false);
 app.use(requestIdMiddleware);
@@ -31,7 +31,13 @@ app.use(securityHeaders);
 app.use(createRateLimiter({ windowMs: 60_000, max: config.rateLimitPerMinute }));
 app.use(cors({ origin: config.corsOrigin, methods:['GET','POST'], allowedHeaders:['Content-Type','Authorization','X-Request-ID','X-Saarthi-Session'], exposedHeaders:['X-Request-ID','X-Saarthi-Session'] }));
 app.use(express.json({ limit: config.maxJsonBytes }));
-app.use(express.static(__dirname));
+app.use(express.static(__dirname, {
+  etag: false,
+  maxAge: 0,
+  setHeaders: (res, filePath) => {
+    if (/\.(html|js|css)$/.test(filePath)) res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
+  }
+}));
 
 const sessions = new Map();
 const bearerAuth = authMiddleware(db, {allowDemo: config.demoMode});
@@ -213,5 +219,5 @@ app.use((err, req, res, next) => {
 });
 
 
-if (require.main === module) app.listen(PORT,()=>logger.info('server_started',{port:PORT,model:config.model,aiConfigured:Boolean(config.openAIKey)}));
+if (require.main === module) app.listen(PORT, '0.0.0.0',()=>logger.info('server_started',{port:PORT,model:config.model,aiConfigured:Boolean(config.openAIKey)}));
 module.exports = { app, sessions, getState, setLedger };
