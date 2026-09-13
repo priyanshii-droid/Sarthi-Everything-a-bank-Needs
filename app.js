@@ -87,16 +87,21 @@ bindUI=function(){oldBindUI();$('language-select')?.addEventListener('change',e=
 const oldBoot=boot;
 boot=async function(){await oldBoot();if(AUTH)await loadPrefs();else{translatePage();updateSoundUI();showResearchStatus()}};
 
-bindUI();boot();
+window.addEventListener('error', e => {
+  console.error('Saarthi UI error:', e.error || e.message);
+});
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => { bindUI(); boot(); }, {once:true});
+} else {
+  bindUI(); boot();
+}
 
-
-/* Saarthi frontend navigation polish: UI-only, backend untouched. */
-(function(){
-  const goBack=document.getElementById('back-btn');
-  if(goBack) goBack.addEventListener('click',function(){ if(history.length>1) history.back(); else if(typeof show==='function') show('home'); });
-  const chat=document.getElementById('chat-top');
-  if(chat) chat.addEventListener('click',function(){ const q=document.getElementById('hero-question'); if(typeof show==='function') show('home'); if(q){q.focus();q.scrollIntoView({behavior:'smooth',block:'center'});} });
-  const notify=document.getElementById('notify-btn');
-  if(notify) notify.addEventListener('click',function(){ const s=document.getElementById('signals'); if(typeof show==='function') show('home'); if(s) s.scrollIntoView({behavior:'smooth',block:'center'}); });
-  document.addEventListener('click',function(e){ const b=e.target.closest('[data-focus="ask"]'); if(b){e.preventDefault(); const q=document.getElementById('hero-question'); if(typeof show==='function') show('home'); setTimeout(()=>{q?.focus();q?.scrollIntoView({behavior:'smooth',block:'center'});},60); }});
-})();
+// Deployment-safe navigation fallback: never depends on individual button handlers.
+document.addEventListener('click', function(e) {
+  const b = e.target.closest('[data-view]');
+  if (b) {
+    e.preventDefault();
+    const v = b.getAttribute('data-view');
+    if (v && typeof show === 'function') show(v);
+  }
+});
