@@ -78,3 +78,50 @@
 .profile-data-btn:hover{background:#edf8f4;transform:translateY(-1px)}
 @media(max-width:1050px){.action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.workflow-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.document-mini{grid-template-columns:1fr}.document-mini .file-picker{margin-top:4px}.document-mini .btn{width:100%}}
 @media(max-width:700px){.action-grid{grid-template-columns:1fr}.workflow-strip{grid-template-columns:1fr}.ai-command-center{padding:30px 16px 22px}.ai-command-box{grid-template-columns:1fr 44px 92px!important}.form-actions{grid-template-columns:1fr}.file-picker{padding:12px}.top-actions .profile-data-btn b{display:none}.profile-data-btn{min-width:40px;padding:8px}}
+
+/* Unified Saarthi workspace system — frontend only */
+.view{max-width:1180px;margin:0 auto;padding-bottom:70px}
+.view:not(#view-home){animation:workspaceIn .35s ease both}
+@keyframes workspaceIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.view:not(#view-home) .section-heading{min-height:112px;padding:26px 28px;margin-bottom:16px;border:1px solid #dce7e9;border-radius:24px;background:linear-gradient(135deg,#ffffff,#f7faf9);box-shadow:0 18px 50px #173b3508;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.view:not(#view-home) .section-heading h2{font-size:28px;letter-spacing:-.035em;margin:6px 0 7px;color:#203847}
+.view:not(#view-home) .section-heading p{max-width:650px;font-size:11px;line-height:1.7;color:#81909a;margin:0}
+.view:not(#view-home)>.panel,.view:not(#view-home) .decision-layout>.panel,.view:not(#view-home) .research-panel,.view:not(#view-home) .audit-banner{border-radius:22px;box-shadow:0 18px 55px #173b3508}
+.view:not(#view-home) .table-panel,.view:not(#view-home) .scenario-panel,.view:not(#view-home) .decision-side,.view:not(#view-home) .research-panel{padding:24px}
+.saarthi-page-copilot{position:relative;isolation:isolate;margin:28px 0 10px!important;padding:34px 38px 30px!important;min-height:330px;display:grid!important;grid-template-columns:150px minmax(0,1fr)!important;gap:30px!important;align-items:center!important;border:1px solid #cddfdb!important;border-radius:30px!important;background:radial-gradient(circle at 20% 35%,#edf9f5 0,transparent 32%),radial-gradient(circle at 90% 0,#f0f3ff 0,transparent 28%),linear-gradient(135deg,#ffffff,#f7fafb)!important;box-shadow:0 28px 75px #173b3512!important;overflow:hidden}
+.saarthi-page-copilot:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,#ffffff80 48%,transparent);opacity:.5;pointer-events:none}
+.copilot-bot-wrap{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px}
+.copilot-bot-large{width:116px!important;height:116px!important;border-radius:34px!important;font-size:43px!important;background:linear-gradient(145deg,#153f49,#26766d 55%,#5c6fd0)!important;box-shadow:0 22px 48px #1c575046,0 0 0 10px #55ad9910,inset 0 1px #ffffff45!important;animation:botFloat 4s ease-in-out infinite}
+@keyframes botFloat{50%{transform:translateY(-5px)}}
+.copilot-live{font:800 8px 'DM Mono',monospace!important;letter-spacing:.16em;text-transform:uppercase;color:#3b8979!important;background:#edf8f5;border:1px solid #d5e9e4;padding:6px 9px;border-radius:99px}
+.copilot-main{position:relative;z-index:1;min-width:0}
+.copilot-main h3{margin:7px 0 8px!important;font-size:25px!important;letter-spacing:-.025em;color:#203847!important}
+.copilot-main p{margin:0 0 18px!important;max-width:690px;font-size:11px!important;line-height:1.7!important;color:#7d8d98!important}
+.copilot-input{display:grid;grid-template-columns:minmax(0,1fr) 54px 132px;gap:8px;padding:7px;border:1px solid #d6e4e2;border-radius:18px;background:#ffffffea;box-shadow:0 14px 40px #20493e0e}
+.copilot-input input{min-width:0;border:0!important;background:transparent!important;padding:13px 14px!important;outline:0;font-size:11px!important;color:#274451}
+.copilot-input input::placeholder{color:#9aa7af}
+.copilot-send{border:0;border-radius:12px;background:linear-gradient(135deg,#173f49,#28796d);color:#fff;font:800 10px Inter,sans-serif;cursor:pointer;box-shadow:0 9px 20px #1b4d4620;transition:.2s}
+.copilot-send:hover{transform:translateY(-1px);box-shadow:0 13px 25px #1b4d4630}
+.copilot-send:disabled{opacity:.55;cursor:wait;transform:none}
+.copilot-suggestions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.copilot-suggestions button{border:1px solid #dbe6e7;background:#fff;border-radius:99px;padding:8px 11px;color:#56717b;font:700 8px Inter,sans-serif;cursor:pointer;transition:.18s}
+.copilot-suggestions button:hover{border-color:#9fcabe;background:#eff8f5;color:#247764;transform:translateY(-1px)}
+.saarthi-page-copilot .copilot-result{grid-column:1/-1;position:relative;z-index:2;margin-top:0!important;border:1px solid #d8e6e3;border-radius:18px;background:#fff;box-shadow:0 16px 38px #173b350c;overflow:hidden}
+.saarthi-page-copilot .copilot-result:not(.hidden){padding:0}
+.saarthi-page-copilot .copilot-result-answer{padding:18px 20px!important;border:0!important;font-size:12px!important;line-height:1.8!important;color:#405664}
+.saarthi-page-copilot .copilot-result-answer .ai-answer-text{font-size:13px;line-height:1.85;color:#304b59}
+.saarthi-page-copilot .copilot-result-answer .agent-trace{margin-top:14px;padding-top:12px;border-top:1px solid #e7eeee}
+.saarthi-page-copilot .copilot-result-answer .ai-answer-meta{font:8px 'DM Mono',monospace;color:#6d8880}
+.section-copilot .voice-modern{min-width:0!important;width:auto!important;border-radius:12px!important}
+/* Make the primary controls visually symmetrical across every workspace. */
+.view:not(#view-home) .btn-primary,.view:not(#view-home) .btn-secondary,.view:not(#view-home) .quick-scenarios button,.view:not(#view-home) .research-hints button{min-height:42px;border-radius:12px}
+.quick-scenarios{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.quick-scenarios button{width:100%}
+.research-hints{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.research-hints button{width:100%}
+/* Larger, calmer content blocks */
+.view:not(#view-home) .table-scroll{min-height:260px}
+.view:not(#view-home) .investigation-grid{min-height:180px}
+.view:not(#view-home) .result{min-height:70px}
+@media(max-width:900px){.saarthi-page-copilot{grid-template-columns:1fr!important;text-align:center;padding:28px 22px 24px!important}.copilot-main p{margin-left:auto!important;margin-right:auto!important}.copilot-suggestions{justify-content:center}.copilot-input{grid-template-columns:minmax(0,1fr) 52px 118px}.quick-scenarios{grid-template-columns:1fr!important}.research-hints{grid-template-columns:repeat(2,minmax(0,1fr))}.view:not(#view-home) .section-heading{align-items:flex-start;flex-direction:column}}
+@media(max-width:600px){.view{padding-bottom:45px}.view:not(#view-home) .section-heading{padding:20px;border-radius:20px}.view:not(#view-home) .section-heading h2{font-size:23px}.saarthi-page-copilot{min-height:0!important;border-radius:24px!important;padding:25px 16px 20px!important}.copilot-bot-large{width:92px!important;height:92px!important;border-radius:28px!important;font-size:34px!important}.copilot-main h3{font-size:21px!important}.copilot-input{grid-template-columns:1fr 48px!important}.copilot-send{grid-column:1/-1;min-height:42px}.research-hints{grid-template-columns:1fr!important}.copilot-result-answer{padding:15px!important}}
